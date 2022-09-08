@@ -7,12 +7,11 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # add the executable
-add_executable(gvNES.out main.cpp includes/6502.h includes/6502.cpp)
-
-
-add_subdirectory(includes)
-
+add_executable(gvNES.out main.cpp 
+    includes/6502.h includes/6502.cpp)
 
 
 
-target_include_directories(includes PUBLIC ${PROJECT_SOURCE_DIR}/includes)
+
+
+
