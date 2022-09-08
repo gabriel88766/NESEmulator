@@ -1,6 +1,6 @@
 #include "includes/6502.h"
-#include <iostream.h>
+#include <iostream>
 
 int main(){
-    cout << test(5, 6);
+    std::cout << test(5, 6);
 }
