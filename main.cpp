@@ -1,6 +1,7 @@
 #include "includes/6502.h"
-#include <iostream>
+//#include <iostream>
 
 int main(){
-    std::cout << test(5, 6);
+    CPU cpu;
+    cpu.nextInstruction();
 }
