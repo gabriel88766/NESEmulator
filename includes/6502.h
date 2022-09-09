@@ -1,14 +1,6 @@
-/**/
-
 #ifndef CPU6502_H
 #define CPU6502_H
 
-#include <functional>
-
-/*
-Function
-int test(int a, int b);
-*/
 class CPU{
 private:
     unsigned char A, X, Y, S;
@@ -17,6 +9,7 @@ public:
     void print7();
     void print10();
 
+    void printState();
     void nextInstruction();
 };
 
@@ -27,8 +20,7 @@ struct Instruction{
 
 extern Instruction instructions[];
 
-
-
 void invoke(void (CPU::*function)(), CPU &obj);
+
 
 #endif 
