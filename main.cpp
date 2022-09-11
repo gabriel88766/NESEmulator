@@ -4,5 +4,4 @@
 int main(){
     CPU cpu;
     cpu.nextInstruction();
-    printf("mudança crucial");
 }
