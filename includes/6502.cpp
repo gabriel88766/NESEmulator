@@ -491,7 +491,7 @@ void CPU::ROR(){
     }
     valueShifted & 0x01 ? setC() : clearC();
     checkZ(result);
-    clearN();
+    checkN(result);
 }
 void CPU::RTI(){
     P = Pull();
