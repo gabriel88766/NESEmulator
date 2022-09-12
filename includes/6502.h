@@ -3,6 +3,8 @@
 
 #include "bus.h"
 
+class Bus;
+
 class CPU{
 private:
     unsigned char A, X, Y, S, P;

@@ -2,6 +2,9 @@
 #define BUS_H
 //NES BUS
 #include "6502.h"
+
+class CPU;
+
 class Bus{
 private:
     CPU *cpu;

@@ -8,8 +8,8 @@ Instruction instructions[256] = {
     {0, &CPU::Illegal, NULL}, //0x02
     {0, &CPU::Illegal, NULL}, //0x03
     {0, &CPU::Illegal, NULL}, //0x04
-    {0, &CPU::Illegal, NULL}, //0x05
-    {0, &CPU::Illegal, NULL}, //0x06
+    {3, &CPU::ORA, &CPU::zpg}, //0x05
+    {5, &CPU::ASL, &CPU::zpg}, //0x06
     {0, &CPU::Illegal, NULL}, //0x07
     {0, &CPU::Illegal, NULL}, //0x08
     {0, &CPU::Illegal, NULL}, //0x09
@@ -19,13 +19,13 @@ Instruction instructions[256] = {
     {0, &CPU::Illegal, NULL}, //0x0D
     {0, &CPU::Illegal, NULL}, //0x0E
     {0, &CPU::Illegal, NULL}, //0x0F
-    {0, &CPU::BPL, &CPU::rel}, //0x10
+    {2, &CPU::BPL, &CPU::rel}, //0x10
     {0, &CPU::Illegal, NULL}, //0x11
     {0, &CPU::Illegal, NULL}, //0x12
     {0, &CPU::Illegal, NULL}, //0x13
     {0, &CPU::Illegal, NULL}, //0x14
-    {0, &CPU::Illegal, NULL}, //0x15
-    {0, &CPU::Illegal, NULL}, //0x16
+    {4, &CPU::ORA, &CPU::zpgX}, //0x15
+    {6, &CPU::ASL, &CPU::zpgX}, //0x16
     {0, &CPU::Illegal, NULL}, //0x17
     {0, &CPU::Illegal, NULL}, //0x18
     {0, &CPU::Illegal, NULL}, //0x19
@@ -39,9 +39,9 @@ Instruction instructions[256] = {
     {0, &CPU::Illegal, NULL}, //0x21
     {0, &CPU::Illegal, NULL}, //0x22
     {0, &CPU::Illegal, NULL}, //0x23
-    {0, &CPU::Illegal, NULL}, //0x24
-    {0, &CPU::Illegal, NULL}, //0x25
-    {0, &CPU::Illegal, NULL}, //0x26
+    {3, &CPU::BIT, &CPU::zpg}, //0x24
+    {3, &CPU::AND, &CPU::zpg}, //0x25
+    {5, &CPU::ROL, &CPU::zpg}, //0x26
     {0, &CPU::Illegal, NULL}, //0x27
     {0, &CPU::Illegal, NULL}, //0x28
     {0, &CPU::Illegal, NULL}, //0x29
@@ -51,13 +51,13 @@ Instruction instructions[256] = {
     {0, &CPU::Illegal, NULL}, //0x2D
     {0, &CPU::Illegal, NULL}, //0x2E
     {0, &CPU::Illegal, NULL}, //0x2F
-    {0, &CPU::BMI, &CPU::rel}, //0x30
+    {2, &CPU::BMI, &CPU::rel}, //0x30
     {0, &CPU::Illegal, NULL}, //0x31
     {0, &CPU::Illegal, NULL}, //0x32
     {0, &CPU::Illegal, NULL}, //0x33
     {0, &CPU::Illegal, NULL}, //0x34
-    {0, &CPU::Illegal, NULL}, //0x35
-    {0, &CPU::Illegal, NULL}, //0x36
+    {4, &CPU::AND, &CPU::zpgX}, //0x35
+    {6, &CPU::ROL, &CPU::zpgX}, //0x36
     {0, &CPU::Illegal, NULL}, //0x37
     {0, &CPU::Illegal, NULL}, //0x38
     {0, &CPU::Illegal, NULL}, //0x39
@@ -72,8 +72,8 @@ Instruction instructions[256] = {
     {0, &CPU::Illegal, NULL}, //0x42
     {0, &CPU::Illegal, NULL}, //0x43
     {0, &CPU::Illegal, NULL}, //0x44
-    {0, &CPU::Illegal, NULL}, //0x45
-    {0, &CPU::Illegal, NULL}, //0x46
+    {3, &CPU::EOR, &CPU::zpg}, //0x45
+    {5, &CPU::LSR, &CPU::zpg}, //0x46
     {0, &CPU::Illegal, NULL}, //0x47
     {0, &CPU::Illegal, NULL}, //0x48
     {0, &CPU::Illegal, NULL}, //0x49
@@ -83,13 +83,13 @@ Instruction instructions[256] = {
     {0, &CPU::Illegal, NULL}, //0x4D
     {0, &CPU::Illegal, NULL}, //0x4E
     {0, &CPU::Illegal, NULL}, //0x4F
-    {0, &CPU::BVC, &CPU::rel}, //0x50
+    {2, &CPU::BVC, &CPU::rel}, //0x50
     {0, &CPU::Illegal, NULL}, //0x51
     {0, &CPU::Illegal, NULL}, //0x52
     {0, &CPU::Illegal, NULL}, //0x53
     {0, &CPU::Illegal, NULL}, //0x54
-    {0, &CPU::Illegal, NULL}, //0x55
-    {0, &CPU::Illegal, NULL}, //0x56
+    {4, &CPU::EOR, &CPU::zpgX}, //0x55
+    {6, &CPU::LSR, &CPU::zpgX}, //0x56
     {0, &CPU::Illegal, NULL}, //0x57
     {0, &CPU::Illegal, NULL}, //0x58
     {0, &CPU::Illegal, NULL}, //0x59
@@ -104,8 +104,8 @@ Instruction instructions[256] = {
     {0, &CPU::Illegal, NULL}, //0x62
     {0, &CPU::Illegal, NULL}, //0x63
     {0, &CPU::Illegal, NULL}, //0x64
-    {0, &CPU::Illegal, NULL}, //0x65
-    {0, &CPU::Illegal, NULL}, //0x66
+    {3, &CPU::ADC, &CPU::zpg}, //0x65
+    {5, &CPU::ROR, &CPU::zpg}, //0x66
     {0, &CPU::Illegal, NULL}, //0x67
     {0, &CPU::Illegal, NULL}, //0x68
     {0, &CPU::Illegal, NULL}, //0x69
@@ -115,13 +115,13 @@ Instruction instructions[256] = {
     {0, &CPU::Illegal, NULL}, //0x6D
     {0, &CPU::Illegal, NULL}, //0x6E
     {0, &CPU::Illegal, NULL}, //0x6F
-    {0, &CPU::BVS, &CPU::rel}, //0x70
+    {2, &CPU::BVS, &CPU::rel}, //0x70
     {0, &CPU::Illegal, NULL}, //0x71
     {0, &CPU::Illegal, NULL}, //0x72
     {0, &CPU::Illegal, NULL}, //0x73
     {0, &CPU::Illegal, NULL}, //0x74
-    {0, &CPU::Illegal, NULL}, //0x75
-    {0, &CPU::Illegal, NULL}, //0x76
+    {4, &CPU::ADC, &CPU::zpgX}, //0x75
+    {6, &CPU::ROR, &CPU::zpgX}, //0x76
     {0, &CPU::Illegal, NULL}, //0x77
     {0, &CPU::Illegal, NULL}, //0x78
     {0, &CPU::Illegal, NULL}, //0x79
@@ -135,9 +135,9 @@ Instruction instructions[256] = {
     {0, &CPU::Illegal, NULL}, //0x81
     {0, &CPU::Illegal, NULL}, //0x82
     {0, &CPU::Illegal, NULL}, //0x83
-    {0, &CPU::Illegal, NULL}, //0x84
-    {0, &CPU::Illegal, NULL}, //0x85
-    {0, &CPU::Illegal, NULL}, //0x86
+    {3, &CPU::STY, &CPU::zpg}, //0x84
+    {3, &CPU::STA, &CPU::zpg}, //0x85
+    {3, &CPU::STX, &CPU::zpg}, //0x86
     {0, &CPU::Illegal, NULL}, //0x87
     {0, &CPU::Illegal, NULL}, //0x88
     {0, &CPU::Illegal, NULL}, //0x89
@@ -147,13 +147,13 @@ Instruction instructions[256] = {
     {0, &CPU::Illegal, NULL}, //0x8D
     {0, &CPU::Illegal, NULL}, //0x8E
     {0, &CPU::Illegal, NULL}, //0x8F
-    {0, &CPU::BCC, &CPU::rel}, //0x90
+    {2, &CPU::BCC, &CPU::rel}, //0x90
     {0, &CPU::Illegal, NULL}, //0x91
     {0, &CPU::Illegal, NULL}, //0x92
     {0, &CPU::Illegal, NULL}, //0x93
-    {0, &CPU::Illegal, NULL}, //0x94
-    {0, &CPU::Illegal, NULL}, //0x95
-    {0, &CPU::Illegal, NULL}, //0x96
+    {4, &CPU::STY, &CPU::zpgX}, //0x94
+    {4, &CPU::STA, &CPU::zpgX}, //0x95
+    {4, &CPU::STX, &CPU::zpgY}, //0x96
     {0, &CPU::Illegal, NULL}, //0x97
     {0, &CPU::Illegal, NULL}, //0x98
     {0, &CPU::Illegal, NULL}, //0x99
@@ -167,9 +167,9 @@ Instruction instructions[256] = {
     {0, &CPU::Illegal, NULL}, //0xA1
     {0, &CPU::Illegal, NULL}, //0xA2
     {0, &CPU::Illegal, NULL}, //0xA3
-    {0, &CPU::Illegal, NULL}, //0xA4
-    {0, &CPU::Illegal, NULL}, //0xA5
-    {0, &CPU::Illegal, NULL}, //0xA6
+    {3, &CPU::LDY, &CPU::zpg}, //0xA4
+    {3, &CPU::LDA, &CPU::zpg}, //0xA5
+    {3, &CPU::LDX, &CPU::zpg}, //0xA6
     {0, &CPU::Illegal, NULL}, //0xA7
     {0, &CPU::Illegal, NULL}, //0xA8
     {0, &CPU::Illegal, NULL}, //0xA9
@@ -179,13 +179,13 @@ Instruction instructions[256] = {
     {0, &CPU::Illegal, NULL}, //0xAD
     {0, &CPU::Illegal, NULL}, //0xAE
     {0, &CPU::Illegal, NULL}, //0xAF
-    {0, &CPU::BCS, &CPU::rel}, //0xB0
+    {2, &CPU::BCS, &CPU::rel}, //0xB0
     {0, &CPU::Illegal, NULL}, //0xB1
     {0, &CPU::Illegal, NULL}, //0xB2
     {0, &CPU::Illegal, NULL}, //0xB3
-    {0, &CPU::Illegal, NULL}, //0xB4
-    {0, &CPU::Illegal, NULL}, //0xB5
-    {0, &CPU::Illegal, NULL}, //0xB6
+    {4, &CPU::LDY, &CPU::zpgX}, //0xB4
+    {4, &CPU::LDA, &CPU::zpgX}, //0xB5
+    {4, &CPU::LDX, &CPU::zpgY}, //0xB6
     {0, &CPU::Illegal, NULL}, //0xB7
     {0, &CPU::Illegal, NULL}, //0xB8
     {0, &CPU::Illegal, NULL}, //0xB9
@@ -199,9 +199,9 @@ Instruction instructions[256] = {
     {0, &CPU::Illegal, NULL}, //0xC1
     {0, &CPU::Illegal, NULL}, //0xC2
     {0, &CPU::Illegal, NULL}, //0xC3
-    {0, &CPU::Illegal, NULL}, //0xC4
-    {0, &CPU::Illegal, NULL}, //0xC5
-    {0, &CPU::Illegal, NULL}, //0xC6
+    {3, &CPU::CPY, &CPU::zpg}, //0xC4
+    {3, &CPU::CMP, &CPU::zpg}, //0xC5
+    {5, &CPU::DEC, &CPU::zpg}, //0xC6
     {0, &CPU::Illegal, NULL}, //0xC7
     {0, &CPU::Illegal, NULL}, //0xC8
     {0, &CPU::Illegal, NULL}, //0xC9
@@ -211,13 +211,13 @@ Instruction instructions[256] = {
     {0, &CPU::Illegal, NULL}, //0xCD
     {0, &CPU::Illegal, NULL}, //0xCE
     {0, &CPU::Illegal, NULL}, //0xCF
-    {0, &CPU::BNE, &CPU::rel}, //0xD0
+    {2, &CPU::BNE, &CPU::rel}, //0xD0
     {0, &CPU::Illegal, NULL}, //0xD1
     {0, &CPU::Illegal, NULL}, //0xD2
     {0, &CPU::Illegal, NULL}, //0xD3
     {0, &CPU::Illegal, NULL}, //0xD4
-    {0, &CPU::Illegal, NULL}, //0xD5
-    {0, &CPU::Illegal, NULL}, //0xD6
+    {4, &CPU::CMP, &CPU::zpgX}, //0xD5
+    {6, &CPU::DEC, &CPU::zpgX}, //0xD6
     {0, &CPU::Illegal, NULL}, //0xD7
     {0, &CPU::Illegal, NULL}, //0xD8
     {0, &CPU::Illegal, NULL}, //0xD9
@@ -231,9 +231,9 @@ Instruction instructions[256] = {
     {0, &CPU::Illegal, NULL}, //0xE1
     {0, &CPU::Illegal, NULL}, //0xE2
     {0, &CPU::Illegal, NULL}, //0xE3
-    {0, &CPU::Illegal, NULL}, //0xE4
-    {0, &CPU::Illegal, NULL}, //0xE5
-    {0, &CPU::Illegal, NULL}, //0xE6
+    {3, &CPU::CPX, &CPU::zpg}, //0xE4
+    {3, &CPU::SBC, &CPU::zpg}, //0xE5
+    {5, &CPU::INC, &CPU::zpg}, //0xE6
     {0, &CPU::Illegal, NULL}, //0xE7
     {0, &CPU::Illegal, NULL}, //0xE8
     {0, &CPU::Illegal, NULL}, //0xE9
@@ -243,13 +243,13 @@ Instruction instructions[256] = {
     {0, &CPU::Illegal, NULL}, //0xED
     {0, &CPU::Illegal, NULL}, //0xEE
     {0, &CPU::Illegal, NULL}, //0xEF
-    {0, &CPU::BEQ, &CPU::rel}, //0xF0
+    {2, &CPU::BEQ, &CPU::rel}, //0xF0
     {0, &CPU::Illegal, NULL}, //0xF1
     {0, &CPU::Illegal, NULL}, //0xF2
     {0, &CPU::Illegal, NULL}, //0xF3
     {0, &CPU::Illegal, NULL}, //0xF4
-    {0, &CPU::Illegal, NULL}, //0xF5
-    {0, &CPU::Illegal, NULL}, //0xF6
+    {4, &CPU::SBC, &CPU::zpgX}, //0xF5
+    {6, &CPU::INC, &CPU::zpgX}, //0xF6
     {0, &CPU::Illegal, NULL}, //0xF7
     {0, &CPU::Illegal, NULL}, //0xF8
     {0, &CPU::Illegal, NULL}, //0xF9
@@ -603,7 +603,7 @@ void CPU::indX(){
 
 }
 void CPU::indY(){
-
+    
 }
 void CPU::rel(){
     unsigned char value = bus->readAddress(PC++);
