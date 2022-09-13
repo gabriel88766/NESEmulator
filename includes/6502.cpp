@@ -447,6 +447,8 @@ void CPU::PHP(){
 }
 void CPU::PLA(){
     A = Pull();
+    checkN(A);
+    checkZ(A);
 }
 void CPU::PLP(){
     P = (Pull() & 0xCF) | (P & 0x30);
