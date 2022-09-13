@@ -3,261 +3,261 @@
 #include <cstdlib>
 
 Instruction instructions[256] = {
-    {0, &CPU::Illegal, NULL}, //0x00
-    {0, &CPU::Illegal, NULL}, //0x01
+    {7, &CPU::BRK, &CPU::impl}, //0x00
+    {6, &CPU::ORA, &CPU::indX}, //0x01
     {0, &CPU::Illegal, NULL}, //0x02
     {0, &CPU::Illegal, NULL}, //0x03
     {0, &CPU::Illegal, NULL}, //0x04
     {3, &CPU::ORA, &CPU::zpg}, //0x05
     {5, &CPU::ASL, &CPU::zpg}, //0x06
     {0, &CPU::Illegal, NULL}, //0x07
-    {0, &CPU::Illegal, NULL}, //0x08
-    {0, &CPU::Illegal, NULL}, //0x09
-    {0, &CPU::Illegal, NULL}, //0x0A
+    {3, &CPU::PHP, &CPU::impl}, //0x08
+    {2, &CPU::ORA, &CPU::imm}, //0x09
+    {2, &CPU::ASL, &CPU::acc}, //0x0A
     {0, &CPU::Illegal, NULL}, //0x0B
     {0, &CPU::Illegal, NULL}, //0x0C
-    {0, &CPU::Illegal, NULL}, //0x0D
-    {0, &CPU::Illegal, NULL}, //0x0E
+    {4, &CPU::ORA, &CPU::abs}, //0x0D
+    {6, &CPU::ASL, &CPU::abs}, //0x0E
     {0, &CPU::Illegal, NULL}, //0x0F
     {2, &CPU::BPL, &CPU::rel}, //0x10
-    {0, &CPU::Illegal, NULL}, //0x11
+    {5, &CPU::ORA, &CPU::indY}, //0x11
     {0, &CPU::Illegal, NULL}, //0x12
     {0, &CPU::Illegal, NULL}, //0x13
     {0, &CPU::Illegal, NULL}, //0x14
     {4, &CPU::ORA, &CPU::zpgX}, //0x15
     {6, &CPU::ASL, &CPU::zpgX}, //0x16
     {0, &CPU::Illegal, NULL}, //0x17
-    {0, &CPU::Illegal, NULL}, //0x18
-    {0, &CPU::Illegal, NULL}, //0x19
+    {2, &CPU::CLC, &CPU::impl}, //0x18
+    {4, &CPU::ORA, &CPU::absY}, //0x19
     {0, &CPU::Illegal, NULL}, //0x1A
     {0, &CPU::Illegal, NULL}, //0x1B
     {0, &CPU::Illegal, NULL}, //0x1C
-    {0, &CPU::Illegal, NULL}, //0x1D
-    {0, &CPU::Illegal, NULL}, //0x1E
+    {4, &CPU::ORA, &CPU::absX}, //0x1D
+    {7, &CPU::ASL, &CPU::absX}, //0x1E
     {0, &CPU::Illegal, NULL}, //0x1F
-    {0, &CPU::Illegal, NULL}, //0x20
-    {0, &CPU::Illegal, NULL}, //0x21
+    {6, &CPU::JSR, &CPU::abs}, //0x20
+    {6, &CPU::AND, &CPU::indX}, //0x21
     {0, &CPU::Illegal, NULL}, //0x22
     {0, &CPU::Illegal, NULL}, //0x23
     {3, &CPU::BIT, &CPU::zpg}, //0x24
     {3, &CPU::AND, &CPU::zpg}, //0x25
     {5, &CPU::ROL, &CPU::zpg}, //0x26
     {0, &CPU::Illegal, NULL}, //0x27
-    {0, &CPU::Illegal, NULL}, //0x28
-    {0, &CPU::Illegal, NULL}, //0x29
-    {0, &CPU::Illegal, NULL}, //0x2A
+    {4, &CPU::PLP, &CPU::impl}, //0x28
+    {2, &CPU::AND, &CPU::imm}, //0x29
+    {2, &CPU::ROL, CPU::acc}, //0x2A
     {0, &CPU::Illegal, NULL}, //0x2B
-    {0, &CPU::Illegal, NULL}, //0x2C
-    {0, &CPU::Illegal, NULL}, //0x2D
-    {0, &CPU::Illegal, NULL}, //0x2E
+    {4, &CPU::BIT, &CPU::abs}, //0x2C
+    {4, &CPU::AND, &CPU::abs}, //0x2D
+    {6, &CPU::ROL, &CPU::abs}, //0x2E
     {0, &CPU::Illegal, NULL}, //0x2F
     {2, &CPU::BMI, &CPU::rel}, //0x30
-    {0, &CPU::Illegal, NULL}, //0x31
+    {5, &CPU::AND, &CPU::indY}, //0x31
     {0, &CPU::Illegal, NULL}, //0x32
     {0, &CPU::Illegal, NULL}, //0x33
     {0, &CPU::Illegal, NULL}, //0x34
     {4, &CPU::AND, &CPU::zpgX}, //0x35
     {6, &CPU::ROL, &CPU::zpgX}, //0x36
     {0, &CPU::Illegal, NULL}, //0x37
-    {0, &CPU::Illegal, NULL}, //0x38
-    {0, &CPU::Illegal, NULL}, //0x39
+    {2, &CPU::SEC, &CPU::impl}, //0x38
+    {4, &CPU::AND, &CPU::absY}, //0x39
     {0, &CPU::Illegal, NULL}, //0x3A
     {0, &CPU::Illegal, NULL}, //0x3B
     {0, &CPU::Illegal, NULL}, //0x3C
-    {0, &CPU::Illegal, NULL}, //0x3D
-    {0, &CPU::Illegal, NULL}, //0x3E
+    {4, &CPU::AND, &CPU::absX}, //0x3D
+    {7, &CPU::ROL, &CPU::absX}, //0x3E
     {0, &CPU::Illegal, NULL}, //0x3F
-    {0, &CPU::Illegal, NULL}, //0x40
-    {0, &CPU::Illegal, NULL}, //0x41
+    {6, &CPU::RTI, &CPU::impl}, //0x40
+    {6, &CPU::EOR, &CPU::indX}, //0x41
     {0, &CPU::Illegal, NULL}, //0x42
     {0, &CPU::Illegal, NULL}, //0x43
     {0, &CPU::Illegal, NULL}, //0x44
     {3, &CPU::EOR, &CPU::zpg}, //0x45
     {5, &CPU::LSR, &CPU::zpg}, //0x46
     {0, &CPU::Illegal, NULL}, //0x47
-    {0, &CPU::Illegal, NULL}, //0x48
-    {0, &CPU::Illegal, NULL}, //0x49
-    {0, &CPU::Illegal, NULL}, //0x4A
+    {3, &CPU::PHA, &CPU::impl}, //0x48
+    {2, &CPU::EOR, &CPU::imm}, //0x49
+    {2, &CPU::LSR, CPU::acc}, //0x4A
     {0, &CPU::Illegal, NULL}, //0x4B
-    {0, &CPU::Illegal, NULL}, //0x4C
-    {0, &CPU::Illegal, NULL}, //0x4D
-    {0, &CPU::Illegal, NULL}, //0x4E
+    {3, &CPU::JMP, &CPU::abs}, //0x4C
+    {4, &CPU::EOR, &CPU::abs}, //0x4D
+    {6, &CPU::LSR, &CPU::abs}, //0x4E
     {0, &CPU::Illegal, NULL}, //0x4F
     {2, &CPU::BVC, &CPU::rel}, //0x50
-    {0, &CPU::Illegal, NULL}, //0x51
+    {5, &CPU::EOR, &CPU::indY}, //0x51
     {0, &CPU::Illegal, NULL}, //0x52
     {0, &CPU::Illegal, NULL}, //0x53
     {0, &CPU::Illegal, NULL}, //0x54
     {4, &CPU::EOR, &CPU::zpgX}, //0x55
     {6, &CPU::LSR, &CPU::zpgX}, //0x56
     {0, &CPU::Illegal, NULL}, //0x57
-    {0, &CPU::Illegal, NULL}, //0x58
-    {0, &CPU::Illegal, NULL}, //0x59
+    {2, &CPU::CLI, &CPU::impl}, //0x58
+    {4, &CPU::EOR, &CPU::absY}, //0x59
     {0, &CPU::Illegal, NULL}, //0x5A
     {0, &CPU::Illegal, NULL}, //0x5B
     {0, &CPU::Illegal, NULL}, //0x5C
-    {0, &CPU::Illegal, NULL}, //0x5D
-    {0, &CPU::Illegal, NULL}, //0x5E
+    {4, &CPU::EOR, &CPU::absX}, //0x5D
+    {7, &CPU::LSR, &CPU::absX}, //0x5E
     {0, &CPU::Illegal, NULL}, //0x5F
-    {0, &CPU::Illegal, NULL}, //0x60
-    {0, &CPU::Illegal, NULL}, //0x61
+    {6, &CPU::RTS, &CPU::impl}, //0x60
+    {6, &CPU::ADC, &CPU::indX}, //0x61
     {0, &CPU::Illegal, NULL}, //0x62
     {0, &CPU::Illegal, NULL}, //0x63
     {0, &CPU::Illegal, NULL}, //0x64
     {3, &CPU::ADC, &CPU::zpg}, //0x65
     {5, &CPU::ROR, &CPU::zpg}, //0x66
     {0, &CPU::Illegal, NULL}, //0x67
-    {0, &CPU::Illegal, NULL}, //0x68
-    {0, &CPU::Illegal, NULL}, //0x69
-    {0, &CPU::Illegal, NULL}, //0x6A
+    {4, &CPU::PLA, &CPU::impl}, //0x68
+    {2, &CPU::ADC, &CPU::imm}, //0x69
+    {2, &CPU::ROR, CPU::acc}, //0x6A
     {0, &CPU::Illegal, NULL}, //0x6B
-    {0, &CPU::Illegal, NULL}, //0x6C
-    {0, &CPU::Illegal, NULL}, //0x6D
-    {0, &CPU::Illegal, NULL}, //0x6E
+    {5, &CPU::JMP, &CPU::ind}, //0x6C
+    {4, &CPU::ADC, &CPU::abs}, //0x6D
+    {6, &CPU::ROR, &CPU::abs}, //0x6E
     {0, &CPU::Illegal, NULL}, //0x6F
     {2, &CPU::BVS, &CPU::rel}, //0x70
-    {0, &CPU::Illegal, NULL}, //0x71
+    {5, &CPU::ADC, &CPU::indY}, //0x71
     {0, &CPU::Illegal, NULL}, //0x72
     {0, &CPU::Illegal, NULL}, //0x73
     {0, &CPU::Illegal, NULL}, //0x74
     {4, &CPU::ADC, &CPU::zpgX}, //0x75
     {6, &CPU::ROR, &CPU::zpgX}, //0x76
     {0, &CPU::Illegal, NULL}, //0x77
-    {0, &CPU::Illegal, NULL}, //0x78
-    {0, &CPU::Illegal, NULL}, //0x79
+    {2, &CPU::SEI, &CPU::impl}, //0x78
+    {4, &CPU::ADC, &CPU::absY}, //0x79
     {0, &CPU::Illegal, NULL}, //0x7A
     {0, &CPU::Illegal, NULL}, //0x7B
     {0, &CPU::Illegal, NULL}, //0x7C
-    {0, &CPU::Illegal, NULL}, //0x7D
-    {0, &CPU::Illegal, NULL}, //0x7E
+    {4, &CPU::ADC, &CPU::absX}, //0x7D
+    {7, &CPU::ROR, &CPU::absX}, //0x7E
     {0, &CPU::Illegal, NULL}, //0x7F
     {0, &CPU::Illegal, NULL}, //0x80
-    {0, &CPU::Illegal, NULL}, //0x81
+    {6, &CPU::STA, &CPU::indX}, //0x81
     {0, &CPU::Illegal, NULL}, //0x82
     {0, &CPU::Illegal, NULL}, //0x83
     {3, &CPU::STY, &CPU::zpg}, //0x84
     {3, &CPU::STA, &CPU::zpg}, //0x85
     {3, &CPU::STX, &CPU::zpg}, //0x86
     {0, &CPU::Illegal, NULL}, //0x87
-    {0, &CPU::Illegal, NULL}, //0x88
+    {2, &CPU::DEY, &CPU::impl}, //0x88
     {0, &CPU::Illegal, NULL}, //0x89
-    {0, &CPU::Illegal, NULL}, //0x8A
+    {2, &CPU::TXA, &CPU::impl}, //0x8A
     {0, &CPU::Illegal, NULL}, //0x8B
-    {0, &CPU::Illegal, NULL}, //0x8C
-    {0, &CPU::Illegal, NULL}, //0x8D
-    {0, &CPU::Illegal, NULL}, //0x8E
+    {4, &CPU::STY, &CPU::abs}, //0x8C
+    {4, &CPU::STA, &CPU::abs}, //0x8D
+    {4, &CPU::STX, &CPU::abs}, //0x8E
     {0, &CPU::Illegal, NULL}, //0x8F
     {2, &CPU::BCC, &CPU::rel}, //0x90
-    {0, &CPU::Illegal, NULL}, //0x91
+    {6, &CPU::STA, &CPU::indY}, //0x91
     {0, &CPU::Illegal, NULL}, //0x92
     {0, &CPU::Illegal, NULL}, //0x93
     {4, &CPU::STY, &CPU::zpgX}, //0x94
     {4, &CPU::STA, &CPU::zpgX}, //0x95
     {4, &CPU::STX, &CPU::zpgY}, //0x96
     {0, &CPU::Illegal, NULL}, //0x97
-    {0, &CPU::Illegal, NULL}, //0x98
-    {0, &CPU::Illegal, NULL}, //0x99
-    {0, &CPU::Illegal, NULL}, //0x9A
+    {2, &CPU::TYA, &CPU::impl}, //0x98
+    {5, &CPU::STA, &CPU::absY}, //0x99
+    {2, &CPU::TXS, &CPU::impl}, //0x9A
     {0, &CPU::Illegal, NULL}, //0x9B
     {0, &CPU::Illegal, NULL}, //0x9C
-    {0, &CPU::Illegal, NULL}, //0x9D
+    {5, &CPU::STA, &CPU::absX}, //0x9D
     {0, &CPU::Illegal, NULL}, //0x9E
     {0, &CPU::Illegal, NULL}, //0x9F
-    {0, &CPU::Illegal, NULL}, //0xA0
-    {0, &CPU::Illegal, NULL}, //0xA1
-    {0, &CPU::Illegal, NULL}, //0xA2
+    {2, &CPU::LDY, &CPU::imm}, //0xA0
+    {6, &CPU::LDA, &CPU::indX}, //0xA1
+    {2, &CPU::LDX, &CPU::imm}, //0xA2
     {0, &CPU::Illegal, NULL}, //0xA3
     {3, &CPU::LDY, &CPU::zpg}, //0xA4
     {3, &CPU::LDA, &CPU::zpg}, //0xA5
     {3, &CPU::LDX, &CPU::zpg}, //0xA6
     {0, &CPU::Illegal, NULL}, //0xA7
-    {0, &CPU::Illegal, NULL}, //0xA8
-    {0, &CPU::Illegal, NULL}, //0xA9
-    {0, &CPU::Illegal, NULL}, //0xAA
+    {2, &CPU::TAY, &CPU::impl}, //0xA8
+    {2, &CPU::LDA, &CPU::imm}, //0xA9
+    {2, &CPU::TAX, &CPU::impl}, //0xAA
     {0, &CPU::Illegal, NULL}, //0xAB
-    {0, &CPU::Illegal, NULL}, //0xAC
-    {0, &CPU::Illegal, NULL}, //0xAD
-    {0, &CPU::Illegal, NULL}, //0xAE
+    {4, &CPU::LDY, &CPU::abs}, //0xAC
+    {4, &CPU::LDA, &CPU::abs}, //0xAD
+    {4, &CPU::LDX, &CPU::abs}, //0xAE
     {0, &CPU::Illegal, NULL}, //0xAF
     {2, &CPU::BCS, &CPU::rel}, //0xB0
-    {0, &CPU::Illegal, NULL}, //0xB1
+    {5, &CPU::LDA, &CPU::indY}, //0xB1
     {0, &CPU::Illegal, NULL}, //0xB2
     {0, &CPU::Illegal, NULL}, //0xB3
     {4, &CPU::LDY, &CPU::zpgX}, //0xB4
     {4, &CPU::LDA, &CPU::zpgX}, //0xB5
     {4, &CPU::LDX, &CPU::zpgY}, //0xB6
     {0, &CPU::Illegal, NULL}, //0xB7
-    {0, &CPU::Illegal, NULL}, //0xB8
-    {0, &CPU::Illegal, NULL}, //0xB9
-    {0, &CPU::Illegal, NULL}, //0xBA
+    {2, &CPU::CLV, &CPU::impl}, //0xB8
+    {4, &CPU::LDA, &CPU::absY}, //0xB9
+    {2, &CPU::TSX, &CPU::impl}, //0xBA
     {0, &CPU::Illegal, NULL}, //0xBB
-    {0, &CPU::Illegal, NULL}, //0xBC
-    {0, &CPU::Illegal, NULL}, //0xBD
-    {0, &CPU::Illegal, NULL}, //0xBE
+    {4, &CPU::LDY, &CPU::absX}, //0xBC
+    {4, &CPU::LDA, &CPU::absX}, //0xBD
+    {4, &CPU::LDX, &CPU::absY}, //0xBE
     {0, &CPU::Illegal, NULL}, //0xBF
-    {0, &CPU::Illegal, NULL}, //0xC0
-    {0, &CPU::Illegal, NULL}, //0xC1
+    {2, &CPU::CPY, &CPU::imm}, //0xC0
+    {6, &CPU::CMP, &CPU::indX}, //0xC1
     {0, &CPU::Illegal, NULL}, //0xC2
     {0, &CPU::Illegal, NULL}, //0xC3
     {3, &CPU::CPY, &CPU::zpg}, //0xC4
     {3, &CPU::CMP, &CPU::zpg}, //0xC5
     {5, &CPU::DEC, &CPU::zpg}, //0xC6
     {0, &CPU::Illegal, NULL}, //0xC7
-    {0, &CPU::Illegal, NULL}, //0xC8
-    {0, &CPU::Illegal, NULL}, //0xC9
-    {0, &CPU::Illegal, NULL}, //0xCA
+    {2, &CPU::INY, &CPU::impl}, //0xC8
+    {2, &CPU::CMP, &CPU::imm}, //0xC9
+    {2, &CPU::DEX, &CPU::impl}, //0xCA
     {0, &CPU::Illegal, NULL}, //0xCB
-    {0, &CPU::Illegal, NULL}, //0xCC
-    {0, &CPU::Illegal, NULL}, //0xCD
-    {0, &CPU::Illegal, NULL}, //0xCE
+    {4, &CPU::CPY, &CPU::abs}, //0xCC
+    {4, &CPU::CMP, &CPU::abs}, //0xCD
+    {6, &CPU::DEC, &CPU::abs}, //0xCE
     {0, &CPU::Illegal, NULL}, //0xCF
     {2, &CPU::BNE, &CPU::rel}, //0xD0
-    {0, &CPU::Illegal, NULL}, //0xD1
+    {5, &CPU::CMP, &CPU::indY}, //0xD1
     {0, &CPU::Illegal, NULL}, //0xD2
     {0, &CPU::Illegal, NULL}, //0xD3
     {0, &CPU::Illegal, NULL}, //0xD4
     {4, &CPU::CMP, &CPU::zpgX}, //0xD5
     {6, &CPU::DEC, &CPU::zpgX}, //0xD6
     {0, &CPU::Illegal, NULL}, //0xD7
-    {0, &CPU::Illegal, NULL}, //0xD8
-    {0, &CPU::Illegal, NULL}, //0xD9
+    {2, &CPU::CLD, &CPU::impl}, //0xD8
+    {4, &CPU::CMP, &CPU::absY}, //0xD9
     {0, &CPU::Illegal, NULL}, //0xDA
     {0, &CPU::Illegal, NULL}, //0xDB
     {0, &CPU::Illegal, NULL}, //0xDC
-    {0, &CPU::Illegal, NULL}, //0xDD
-    {0, &CPU::Illegal, NULL}, //0xDE
+    {4, &CPU::CMP, &CPU::absX}, //0xDD
+    {7, &CPU::DEC, &CPU::absX}, //0xDE
     {0, &CPU::Illegal, NULL}, //0xDF
-    {0, &CPU::Illegal, NULL}, //0xE0
-    {0, &CPU::Illegal, NULL}, //0xE1
+    {2, &CPU::CPX, &CPU::imm}, //0xE0
+    {6, &CPU::SBC, &CPU::indX}, //0xE1
     {0, &CPU::Illegal, NULL}, //0xE2
     {0, &CPU::Illegal, NULL}, //0xE3
     {3, &CPU::CPX, &CPU::zpg}, //0xE4
     {3, &CPU::SBC, &CPU::zpg}, //0xE5
     {5, &CPU::INC, &CPU::zpg}, //0xE6
     {0, &CPU::Illegal, NULL}, //0xE7
-    {0, &CPU::Illegal, NULL}, //0xE8
-    {0, &CPU::Illegal, NULL}, //0xE9
-    {0, &CPU::Illegal, NULL}, //0xEA
+    {2, &CPU::INX, &CPU::impl}, //0xE8
+    {2, &CPU::SBC, &CPU::imm}, //0xE9
+    {2, &CPU::NOP, &CPU::impl}, //0xEA
     {0, &CPU::Illegal, NULL}, //0xEB
-    {0, &CPU::Illegal, NULL}, //0xEC
-    {0, &CPU::Illegal, NULL}, //0xED
-    {0, &CPU::Illegal, NULL}, //0xEE
+    {4, &CPU::CPX, &CPU::abs}, //0xEC
+    {4, &CPU::SBC, &CPU::abs}, //0xED
+    {6, &CPU::INC, &CPU::abs}, //0xEE
     {0, &CPU::Illegal, NULL}, //0xEF
     {2, &CPU::BEQ, &CPU::rel}, //0xF0
-    {0, &CPU::Illegal, NULL}, //0xF1
+    {5, &CPU::SBC, &CPU::indY}, //0xF1
     {0, &CPU::Illegal, NULL}, //0xF2
     {0, &CPU::Illegal, NULL}, //0xF3
     {0, &CPU::Illegal, NULL}, //0xF4
     {4, &CPU::SBC, &CPU::zpgX}, //0xF5
     {6, &CPU::INC, &CPU::zpgX}, //0xF6
     {0, &CPU::Illegal, NULL}, //0xF7
-    {0, &CPU::Illegal, NULL}, //0xF8
-    {0, &CPU::Illegal, NULL}, //0xF9
+    {2, &CPU::SED, &CPU::impl}, //0xF8
+    {4, &CPU::SBC, &CPU::absY}, //0xF9
     {0, &CPU::Illegal, NULL}, //0xFA
     {0, &CPU::Illegal, NULL}, //0xFB
     {0, &CPU::Illegal, NULL}, //0xFC
-    {0, &CPU::Illegal, NULL}, //0xFD
-    {0, &CPU::Illegal, NULL}, //0xFE
+    {4, &CPU::SBC, &CPU::absX}, //0xFD
+    {7, &CPU::INC, &CPU::absX}, //0xFE
     {0, &CPU::Illegal, NULL}  //0xFF 
 };
 CPU::CPU(){
@@ -289,6 +289,7 @@ void CPU::ASL(){
         valueShifted = A;
         result = valueShifted << 1;
         A = result;
+        isAccumulator = false;
     }else{
         valueShifted = bus->readAddress(memory);
         result = valueShifted << 1;
@@ -430,6 +431,7 @@ void CPU::LSR(){
         valueShifted = A;
         result = valueShifted >> 1;
         A = result;
+        isAccumulator = false;
     }else{
         valueShifted = bus->readAddress(memory);
         result = valueShifted >> 1;
@@ -466,6 +468,7 @@ void CPU::ROL(){
         result = valueShifted << 1;
         if(getC()) result |= 0x01;
         A = result;
+        isAccumulator = false;
     }else{
         valueShifted = bus->readAddress(memory);
         result = valueShifted << 1;
@@ -483,6 +486,7 @@ void CPU::ROR(){
         result = valueShifted >> 1;
         if(getC()) result |= 0x80;
         A = result;
+        isAccumulator = false;
     }else{
         valueShifted = bus->readAddress(memory);
         result = valueShifted >> 1;
@@ -586,24 +590,61 @@ void CPU::abs(){
     unsigned short high = bus->readAddress(PC++);
     memory = low | (high << 8);
 }
-void absX(){
-
+void CPU::absX(){
+    unsigned char low = bus->readAddress(PC++);
+    unsigned short high = bus->readAddress(PC++);
+    memory = (high << 8) | low;
+    if(((memory + X) & 0xFF00) != (memory & 0xFF00)){ //page cross
+        if((opcode != 0x9D) && ((opcode & 0x0F) != 0x0E)){
+            total_cycles++;
+        }
+    } 
+    memory += X;
 }
-void absY();
+void CPU::absY(){
+    unsigned char low = bus->readAddress(PC++);
+    unsigned short high = bus->readAddress(PC++);
+    memory = (high << 8) | low;
+    if(((memory + Y) & 0xFF00) != (memory & 0xFF00)){ //page cross
+        if(opcode != 0x99){
+            total_cycles++;
+        }
+    } 
+    memory += Y;
+}
 void CPU::imm(){
     memory = PC++;
 }
 void CPU::impl(){
-
+    //Nothing to do.
 }
 void CPU::ind(){
-
+    unsigned char low = bus->readAddress(PC++);
+    unsigned short high = bus->readAddress(PC++);
+    unsigned short memoryIndirect = (high << 8) | low;
+    low = bus->readAddress(memoryIndirect);
+    memoryIndirect = (memoryIndirect & 0xFF00) + ((memoryIndirect + 1) & 0xFF);
+    high = bus->readAddress(memoryIndirect);
+    memory = (high << 8) | low;
 }
 void CPU::indX(){
-
+    unsigned char memIndirect = bus->readAddress(PC++);
+    memIndirect += X;
+    unsigned char low = bus->readAddress(memIndirect++);
+    unsigned short high = bus->readAddress(memIndirect);
+    memory = (high << 8) | low;
 }
 void CPU::indY(){
-    
+    unsigned char memIndirect = bus->readAddress(PC++);
+    unsigned char low = bus->readAddress(memIndirect++);
+    unsigned short high = bus->readAddress(memIndirect);
+    memory = (high << 8) | low;
+    if(((memory + Y) & 0xFF00) != (memory & 0xFF00)){ //page cross
+        if(opcode != 0x91){
+            total_cycles++;
+        }
+    } 
+    memory += Y;
 }
 void CPU::rel(){
     unsigned char value = bus->readAddress(PC++);
