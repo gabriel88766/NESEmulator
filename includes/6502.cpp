@@ -45,7 +45,7 @@ Instruction instructions[256] = {
     {0, &CPU::Illegal, NULL}, //0x27
     {4, &CPU::PLP, &CPU::impl}, //0x28
     {2, &CPU::AND, &CPU::imm}, //0x29
-    {2, &CPU::ROL, CPU::acc}, //0x2A
+    {2, &CPU::ROL, &CPU::acc}, //0x2A
     {0, &CPU::Illegal, NULL}, //0x2B
     {4, &CPU::BIT, &CPU::abs}, //0x2C
     {4, &CPU::AND, &CPU::abs}, //0x2D
@@ -77,7 +77,7 @@ Instruction instructions[256] = {
     {0, &CPU::Illegal, NULL}, //0x47
     {3, &CPU::PHA, &CPU::impl}, //0x48
     {2, &CPU::EOR, &CPU::imm}, //0x49
-    {2, &CPU::LSR, CPU::acc}, //0x4A
+    {2, &CPU::LSR, &CPU::acc}, //0x4A
     {0, &CPU::Illegal, NULL}, //0x4B
     {3, &CPU::JMP, &CPU::abs}, //0x4C
     {4, &CPU::EOR, &CPU::abs}, //0x4D
@@ -109,7 +109,7 @@ Instruction instructions[256] = {
     {0, &CPU::Illegal, NULL}, //0x67
     {4, &CPU::PLA, &CPU::impl}, //0x68
     {2, &CPU::ADC, &CPU::imm}, //0x69
-    {2, &CPU::ROR, CPU::acc}, //0x6A
+    {2, &CPU::ROR, &CPU::acc}, //0x6A
     {0, &CPU::Illegal, NULL}, //0x6B
     {5, &CPU::JMP, &CPU::ind}, //0x6C
     {4, &CPU::ADC, &CPU::abs}, //0x6D
@@ -265,18 +265,8 @@ CPU::CPU(){
 }
 //Instructions
 void CPU::ADC(){
-    if(getD()){
-        //Not implemented (decimal mode)
-    }else{
-        unsigned char Oper1 = A;
-        unsigned short Oper2 = bus->readAddress(memory) + getC() ? 1 : 0;
-        unsigned short result = A + Oper2;
-        A = (unsigned char)result;
-        A == 0 ? setZ() : clearZ();
-        A & 0x80 ? setN() : clearN();
-        result > 0xFF ? setC() : clearC();
-        (Oper1 ^ result ) & (Oper2 ^ result) & 0x80 ? setV() : clearV();
-    }
+    unsigned char Oper2 = bus->readAddress(memory);
+    Addition(Oper2);
 }
 void CPU::AND(){
     A = A & bus->readAddress(memory);
@@ -459,7 +449,7 @@ void CPU::PLA(){
     A = Pull();
 }
 void CPU::PLP(){
-    P = Pull();
+    P = (Pull() & 0xCF) | (P & 0x30);
 }
 void CPU::ROL(){
     unsigned char valueShifted, result;
@@ -510,7 +500,8 @@ void CPU::RTS(){
     PC++;
 }
 void CPU::SBC(){
-
+    unsigned short Oper2 = bus->readAddress(memory);
+    Addition(~Oper2);
 }
 void CPU::SEC(){
     setC();
@@ -558,6 +549,36 @@ void CPU::TYA(){
     checkZ(A);
     checkN(A);
 }
+void CPU::Addition(unsigned short Oper2){
+    if(getD()){
+        //Decimal mode is not used in NES, may have bugs.
+        unsigned char Oper1 = A;
+        unsigned char low = (Oper1 & 0xF) + (Oper2 & 0xF) + getC() ? 1 : 0;
+        unsigned short result;
+        if(low > 9){
+            low += 6;
+        }
+        result += (Oper1 & 0xF0) + (Oper2 & 0xF0) + low;
+        if(result > 0x99){
+            setC();
+            result -= 0xA0;
+        }else{
+            clearC();
+        } 
+        checkZ(result);
+        A = result;        
+    }else{
+        unsigned short Oper1 = A;
+        unsigned short result = Oper1 + Oper2 + (getC() ? 1 : 0);
+        A = (unsigned char)result;
+        A == 0 ? setZ() : clearZ();
+        A & 0x80 ? setN() : clearN();
+        result > 0xFF ? setC() : clearC();
+        //test overflow 1
+        (Oper1 ^ result ) & (Oper2 ^ result) & 0x80 ? setV() : clearV();
+    }
+    
+}
 void CPU::Branch(){
     PC = memory;
     total_cycles++;
@@ -566,8 +587,8 @@ void CPU::Compare(unsigned char reg){
     unsigned char memValue = bus->readAddress(memory);
     memValue <= reg ? setC() : clearC();
     reg -= memValue;
-    checkZ(memValue);
-    checkN(memValue);
+    checkZ(reg);
+    checkN(reg);
 }
 unsigned char CPU::Pull(){
     S++;
@@ -741,8 +762,8 @@ void CPU::checkN(unsigned char value){
 
 //Others and debug
 void CPU::printState(){
-    printf( "A : 0x%02X, X : 0x%02X, Y : 0x%02X, S : 0x%02X, PC : 0x%04X\n",
-        A, X, Y, S, PC ); //registers.
+    printf( "A : 0x%02X, X : 0x%02X, Y : 0x%02X, P : 0x%02X, S : 0x%02X PC : 0x%04X, opcode = 0x%02X\n", 
+        A, X, Y, P, S, PC, opcode ); //registers.
 }
 
 void CPU::nextInstruction(){
@@ -750,10 +771,12 @@ void CPU::nextInstruction(){
     invoke(instructions[opcode].address_mode, *this);
     invoke(instructions[opcode].instruction, *this);
     total_cycles += instructions[opcode].cycles;
+    printState();
 }
 
 void CPU::powerON(){
-
+    P = 0x34;
+    PC = 0x400;
 }
 
 void CPU::reset(){

@@ -74,6 +74,7 @@ public:
     void TXA();
     void TXS();
     void TYA();
+    void Addition(unsigned short Oper2); //ADC and SBC
     void Branch();
     void Compare(unsigned char reg);
     unsigned char Pull();

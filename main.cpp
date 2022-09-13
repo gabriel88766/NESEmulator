@@ -5,6 +5,12 @@
 int main(){
     Bus bus;
     CPU cpu;
+    
     bus.connectCPU(&cpu);
-    cpu.nextInstruction();
+    
+    bus.readTest();
+    cpu.powerON();
+    while(true){
+        cpu.nextInstruction();
+    }
 }

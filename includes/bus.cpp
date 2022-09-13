@@ -1,4 +1,10 @@
 #include "bus.h"
+#include <fstream>
+#include <cstring>
+
+Bus::Bus(){
+    memset(&memory[0], 0, 0xFFFF);
+}
 
 void Bus::connectCPU(CPU *cpu){
     this->cpu = cpu;
@@ -6,6 +12,7 @@ void Bus::connectCPU(CPU *cpu){
 }
 
 unsigned char Bus::readAddress(unsigned short address){
+    return memory[address]; //test
     if(address < 0x2000){
         return memory[address & 0x800];
     }
@@ -13,7 +20,14 @@ unsigned char Bus::readAddress(unsigned short address){
 }
 
 void Bus::writeAddress(unsigned short address, unsigned char value){
+    memory[address] = value; //test line1
+    return; //test line2
     if(address < 0x2000){
         memory[address & 0x800] = value;
     }
+}
+
+void Bus::readTest(){
+    std::ifstream input("testROM/6502_functional_test.bin", std::ios::binary);
+    input.read( (char*)( &memory[0] ), 0xFFFF );
 }
