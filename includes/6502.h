@@ -15,8 +15,11 @@ private:
     int extra_cycles;
     bool isAccumulator = false; //memory vs accumulator instruction
     Bus *bus;
+    int inst = 0;
 public:
-    CPU();
+    CPU(){
+        this->powerON();
+    }
     //Instructions
     void ADC();
     void AND();

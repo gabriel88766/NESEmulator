@@ -260,9 +260,6 @@ Instruction instructions[256] = {
     {7, &CPU::INC, &CPU::absX}, //0xFE
     {0, &CPU::Illegal, NULL}  //0xFF 
 };
-CPU::CPU(){
-    this->powerON();
-}
 //Instructions
 void CPU::ADC(){
     unsigned char Oper2 = bus->readAddress(memory);
@@ -299,9 +296,10 @@ void CPU::BEQ(){
     if(getZ()) Branch();
 }
 void CPU::BIT(){
-    unsigned char result = A ^ bus->readAddress(memory);
-    checkN(result);
-    result & 0x40 ? setV() : clearV();
+    unsigned char oper = bus->readAddress(memory);
+    unsigned char result = A & oper;
+    checkN(oper);
+    oper & 0x40 ? setV() : clearV();
     checkZ(result); 
 }
 void CPU::BMI(){
@@ -319,7 +317,9 @@ void CPU::BRK(){
     unsigned char high = PC >> 8;
     Push(high);
     Push(low); 
+    P |= 0x30;
     Push(P);
+    P |= 0x04;
     PC = bus->readAddress(0xFFFF) << 8;
     PC |= bus->readAddress(0xFFFE);
 }
@@ -336,7 +336,7 @@ void CPU::CLD(){
     clearD();
 }
 void CPU::CLI(){
-    clearD();
+    clearI();
 }
 void CPU::CLV(){
     clearV();
@@ -552,11 +552,17 @@ void CPU::TYA(){
     checkN(A);
 }
 void CPU::Addition(unsigned short Oper2){
+    Oper2 &= 0xFF;
     if(getD()){
         //Decimal mode is not used in NES, may have bugs.
-        unsigned char Oper1 = A;
-        unsigned char low = (Oper1 & 0xF) + (Oper2 & 0xF) + getC() ? 1 : 0;
-        unsigned short result;
+        //SBC --
+        if(instructions[opcode].instruction == &CPU::SBC){
+            Oper2 = ~Oper2; //revert
+            Oper2 =  (0x90 - (Oper2 & 0xF0)) + (0x9 - (Oper2 & 0xF));
+        }
+        unsigned short Oper1 = A;
+        unsigned char low = (Oper1 & 0xF) + (Oper2 & 0xF) + (getC() ? 1 : 0);
+        unsigned short result = 0;
         if(low > 9){
             low += 6;
         }
@@ -769,11 +775,16 @@ void CPU::printState(){
 }
 
 void CPU::nextInstruction(){
+    inst++;
     opcode = bus->readAddress(PC++);
     invoke(instructions[opcode].address_mode, *this);
     invoke(instructions[opcode].instruction, *this);
     total_cycles += instructions[opcode].cycles;
-    printState();
+    //if(total_cycles > 835e5) printState();
+    if(PC == 0x3469){
+        printf("%d instructions, %lld cycles", inst, total_cycles);
+        exit(0);
+    }
 }
 
 void CPU::powerON(){
@@ -782,7 +793,8 @@ void CPU::powerON(){
 }
 
 void CPU::reset(){
-
+    P = 0x34;
+    PC = 0x400;
 }
 
 void CPU::connectBus(Bus *bus){

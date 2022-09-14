@@ -2,9 +2,6 @@
 #include <fstream>
 #include <cstring>
 
-Bus::Bus(){
-    memset(&memory[0], 0, 0xFFFF);
-}
 
 void Bus::connectCPU(CPU *cpu){
     this->cpu = cpu;
@@ -29,5 +26,5 @@ void Bus::writeAddress(unsigned short address, unsigned char value){
 
 void Bus::readTest(){
     std::ifstream input("testROM/6502_functional_test.bin", std::ios::binary);
-    input.read( (char*)( &memory[0] ), 0xFFFF );
+    input.read( (char*)( &memory[0] ), 0x10000 );
 }
