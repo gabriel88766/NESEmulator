@@ -7,9 +7,7 @@ int main(){
     CPU cpu;
     
     bus.connectCPU(&cpu);
-    
     bus.readTest();
-    cpu.powerON();
     while(true){
         cpu.nextInstruction();
     }

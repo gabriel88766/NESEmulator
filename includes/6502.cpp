@@ -502,8 +502,8 @@ void CPU::RTS(){
     PC++;
 }
 void CPU::SBC(){
-    unsigned short Oper2 = bus->readAddress(memory);
-    Addition(~Oper2);
+    unsigned char Oper2 = ~bus->readAddress(memory);
+    Addition(Oper2);
 }
 void CPU::SEC(){
     setC();
@@ -552,9 +552,9 @@ void CPU::TYA(){
     checkN(A);
 }
 void CPU::Addition(unsigned short Oper2){
-    Oper2 &= 0xFF;
     if(getD()){
         //Decimal mode is not used in NES, may have bugs.
+        //Probably run slowly than binary.
         //SBC --
         if(instructions[opcode].instruction == &CPU::SBC){
             Oper2 = ~Oper2; //revert
@@ -588,7 +588,9 @@ void CPU::Addition(unsigned short Oper2){
     
 }
 void CPU::Branch(){
+    unsigned short oldPC = PC;
     PC = memory;
+    if((oldPC ^ PC) & 0xFF00) total_cycles++;
     total_cycles++;
 }
 void CPU::Compare(unsigned char reg){
@@ -620,22 +622,22 @@ void CPU::abs(){
     memory = low | (high << 8);
 }
 void CPU::absX(){
-    unsigned char low = bus->readAddress(PC++);
+    unsigned short low = bus->readAddress(PC++);
     unsigned short high = bus->readAddress(PC++);
     memory = (high << 8) | low;
     if(((memory + X) & 0xFF00) != (memory & 0xFF00)){ //page cross
-        if((opcode != 0x9D) && ((opcode & 0x0F) != 0x0E)){
+        if((opcode != 0x9D) && ((opcode & 0x0F) != 0x0E)){ //8c
             total_cycles++;
         }
     } 
     memory += X;
 }
 void CPU::absY(){
-    unsigned char low = bus->readAddress(PC++);
+    unsigned short low = bus->readAddress(PC++);
     unsigned short high = bus->readAddress(PC++);
     memory = (high << 8) | low;
     if(((memory + Y) & 0xFF00) != (memory & 0xFF00)){ //page cross
-        if(opcode != 0x99){
+        if(opcode != 0x99){ //8cycles
             total_cycles++;
         }
     } 
@@ -648,38 +650,36 @@ void CPU::impl(){
     //Nothing to do.
 }
 void CPU::ind(){
-    unsigned char low = bus->readAddress(PC++);
+    unsigned short low = bus->readAddress(PC++);
     unsigned short high = bus->readAddress(PC++);
     unsigned short memoryIndirect = (high << 8) | low;
     low = bus->readAddress(memoryIndirect);
-    memoryIndirect = (memoryIndirect & 0xFF00) + ((memoryIndirect + 1) & 0xFF);
+    memoryIndirect = (memoryIndirect & 0xFF00) + ((memoryIndirect + 1) & 0xFF); //no page cross
     high = bus->readAddress(memoryIndirect);
     memory = (high << 8) | low;
 }
 void CPU::indX(){
     unsigned char memIndirect = bus->readAddress(PC++);
-    memIndirect += X;
-    unsigned char low = bus->readAddress(memIndirect++);
+    memIndirect += X; //must be zero page, < 0xFF
+    unsigned short low = bus->readAddress(memIndirect++);
     unsigned short high = bus->readAddress(memIndirect);
     memory = (high << 8) | low;
 }
 void CPU::indY(){
     unsigned char memIndirect = bus->readAddress(PC++);
-    unsigned char low = bus->readAddress(memIndirect++);
+    unsigned short low = bus->readAddress(memIndirect++); //memIndirect must be < 0xFF
     unsigned short high = bus->readAddress(memIndirect);
     memory = (high << 8) | low;
     if(((memory + Y) & 0xFF00) != (memory & 0xFF00)){ //page cross
-        if(opcode != 0x91){
+        if(opcode != 0x91 ){//4cycles
             total_cycles++;
         }
     } 
     memory += Y;
 }
 void CPU::rel(){
-    unsigned char value = bus->readAddress(PC++);
-    unsigned short oldPC = PC;
-    memory = PC + (char)value;
-    if((oldPC ^ PC) & 0xFF00) total_cycles++;
+    char value = bus->readAddress(PC++);
+    memory = PC + value;
 }
 void CPU::zpg(){
     memory = bus->readAddress(PC++);
