@@ -260,7 +260,8 @@ Instruction instructions[256] = {
     {7, &CPU::INC, &CPU::absX}, //0xFE
     {0, &CPU::Illegal, NULL}  //0xFF 
 };
-//Instructions
+
+//Instructions 265-618
 void CPU::ADC(){
     unsigned char Oper2 = bus->readAddress(memory);
     Addition(Oper2);
@@ -317,9 +318,9 @@ void CPU::BRK(){
     unsigned char high = PC >> 8;
     Push(high);
     Push(low); 
-    P |= 0x30;
+    setB();
     Push(P);
-    P |= 0x04;
+    setI();
     PC = bus->readAddress(0xFFFF) << 8;
     PC |= bus->readAddress(0xFFFE);
 }
@@ -443,6 +444,7 @@ void CPU::PHA(){
     Push(A);
 }
 void CPU::PHP(){
+    //setB();
     Push(P);
 }
 void CPU::PLA(){
@@ -555,7 +557,8 @@ void CPU::Addition(unsigned short Oper2){
     if(getD()){
         //Decimal mode is not used in NES, may have bugs.
         //Probably run slowly than binary.
-        //SBC --
+
+        //SBC -- reverts binary case and convert to decimal case
         if(instructions[opcode].instruction == &CPU::SBC){
             Oper2 = ~Oper2; //revert
             Oper2 =  (0x90 - (Oper2 & 0xF0)) + (0x9 - (Oper2 & 0xF));
@@ -612,7 +615,8 @@ void CPU::Illegal(){
     printf("Reached an Illegal OPCODE that is not defined.\n");
     exit(1);
 }
-//Address Mode
+
+//Address Mode 620-700
 void CPU::acc(){
     isAccumulator = true;
 }
@@ -626,7 +630,7 @@ void CPU::absX(){
     unsigned short high = bus->readAddress(PC++);
     memory = (high << 8) | low;
     if(((memory + X) & 0xFF00) != (memory & 0xFF00)){ //page cross
-        if((opcode != 0x9D) && ((opcode & 0x0F) != 0x0E)){ //8c
+        if((opcode != 0x9D) && ((opcode & 0x0F) != 0x0E)){ 
             total_cycles++;
         }
     } 
@@ -637,7 +641,7 @@ void CPU::absY(){
     unsigned short high = bus->readAddress(PC++);
     memory = (high << 8) | low;
     if(((memory + Y) & 0xFF00) != (memory & 0xFF00)){ //page cross
-        if(opcode != 0x99){ //8cycles
+        if(opcode != 0x99){ 
             total_cycles++;
         }
     } 
@@ -671,7 +675,7 @@ void CPU::indY(){
     unsigned short high = bus->readAddress(memIndirect);
     memory = (high << 8) | low;
     if(((memory + Y) & 0xFF00) != (memory & 0xFF00)){ //page cross
-        if(opcode != 0x91 ){//4cycles
+        if(opcode != 0x91 ){
             total_cycles++;
         }
     } 
@@ -695,7 +699,7 @@ void CPU::zpgY(){
     memory &= 0xFF;    
 }
 
-//Flags
+//Flags 702-772
 void CPU::setC(){
     P |= 0x01;
 }
@@ -767,41 +771,76 @@ void CPU::checkN(unsigned char value){
     value & 0x80 ? setN() : clearN();
 }
 
-
-//Others and debug
+//Controllers and debug
 void CPU::printState(){
     printf( "A : 0x%02X, X : 0x%02X, Y : 0x%02X, P : 0x%02X, S : 0x%02X PC : 0x%04X, opcode = 0x%02X\n", 
-        A, X, Y, P, S, PC, opcode ); //registers.
+        A, X, Y, P, S, PC, opcode ); //registers and opcode.
 }
 
 void CPU::nextInstruction(){
-    inst++;
+    if(irq_pin){
+        if(!getI()){
+            irq_pin = false;//interrupt handled
+            irq();
+        }
+    }
+    if(nmi_pin){
+        nmi_pin = false;
+        nmi();
+    }
     opcode = bus->readAddress(PC++);
     invoke(instructions[opcode].address_mode, *this);
     invoke(instructions[opcode].instruction, *this);
     total_cycles += instructions[opcode].cycles;
-    //if(total_cycles > 835e5) printState();
-    if(PC == 0x3469){
-        printf("%d instructions, %lld cycles", inst, total_cycles);
-        exit(0);
-    }
+    //if(PC == 0x3469) {printf("success\n total cycles = %d\n", total_cycles); exit(0);} //Klauss
 }
 
 void CPU::powerON(){
     P = 0x34;
-    PC = 0x400;
+    A = X = Y = 0;
+    S = 0xFD;
+    PC = 0x8000;
 }
 
 void CPU::reset(){
-    P = 0x34;
-    PC = 0x400;
+    setI();
+    S -= 3;
+    PC = bus->readAddress(0xFFFD) << 8;
+    PC |= bus->readAddress(0xFFFC);
+}
+
+void CPU::irq(){
+    unsigned char low = PC;
+    unsigned char high = PC >> 8;
+    Push(high);
+    Push(low); 
+    clearB();
+    Push(P);
+    setI();
+    PC = bus->readAddress(0xFFFF) << 8;
+    PC |= bus->readAddress(0xFFFE);
+    total_cycles += 7;
+}
+
+void CPU::nmi(){
+    unsigned char low = PC;
+    unsigned char high = PC >> 8;
+    Push(high);
+    Push(low); 
+    clearB();
+    Push(P);
+    setI();
+    PC = bus->readAddress(0xFFFB) << 8;
+    PC |= bus->readAddress(0xFFFA);
+    total_cycles += 7;
 }
 
 void CPU::connectBus(Bus *bus){
     this->bus = bus;
 }
 
-
 void invoke(void (CPU::*function)(), CPU &obj) {
     (obj.*function)();
 }
+
+

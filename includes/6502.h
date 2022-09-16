@@ -15,7 +15,8 @@ private:
     int extra_cycles;
     bool isAccumulator = false; //memory vs accumulator instruction
     Bus *bus;
-    int inst = 0;
+    bool irq_pin = false;
+    bool nmi_pin = false;
 public:
     CPU(){
         this->powerON();
@@ -121,11 +122,13 @@ public:
     bool getN();
     void checkZ(unsigned char value);
     void checkN(unsigned char value);
-    //Others and debug
+    //Controllers and debug
     void printState();
     void nextInstruction();
     void powerON();
     void reset();
+    void irq();
+    void nmi();
     void connectBus(Bus *bus);
 };
 
@@ -134,8 +137,6 @@ struct Instruction{
     void(CPU::*instruction)();
     void(CPU::*address_mode)();
 };
-
-extern Instruction instructions[];
 
 void invoke(void (CPU::*function)(), CPU &obj);
 

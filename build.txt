@@ -1,4 +1,4 @@
 
-make objs >> cd includes, g++ -Wall -Wextra -g -c *.cpp
+make objs >> cd includes, g++ -Wall -Wextra -O2 -g -c *.cpp
 
-make exe >> g++ -Wall -Wextra -g *.o main.cpp -o main.exe
+make exe >> g++ -Wall -Wextra -g -O2 includes/*.o main.cpp -o main.exe
