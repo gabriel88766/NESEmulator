@@ -11,8 +11,6 @@ private:
     unsigned short PC;
     unsigned short memory;
     unsigned char opcode;
-    long long int total_cycles;
-    int extra_cycles;
     bool isAccumulator = false; //memory vs accumulator instruction
     Bus *bus;
     bool irq_pin = false;
@@ -21,6 +19,7 @@ public:
     CPU(){
         this->powerON();
     }
+    long long int total_cycles;
     //Instructions
     void ADC();
     void AND();
@@ -130,6 +129,8 @@ public:
     void irq();
     void nmi();
     void connectBus(Bus *bus);
+    void setirq();
+    void setnmi();
 };
 
 struct Instruction{

@@ -843,4 +843,10 @@ void invoke(void (CPU::*function)(), CPU &obj) {
     (obj.*function)();
 }
 
+void CPU::setirq(){
+    irq_pin = true;
+}
 
+void CPU::setnmi(){
+    nmi_pin = true;
+}
