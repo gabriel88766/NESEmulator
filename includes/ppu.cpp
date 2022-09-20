@@ -62,37 +62,56 @@ Color color_pallete_1[] = {
 
 unsigned char bit_mask[] = { 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
 
+PPU::PPU(){
+    img = new Image();
+    img->makeImage(256,240);
+    register_action[0] = &PPUCTRL;
+    register_action[1] = &PPUMASK;
+    register_action[2] = &PPUSTATUS;
+    register_action[3] = &OAMADDR;
+    register_action[4] = &OAMDATA;
+    register_action[5] = &PPUSCROLL;
+    register_action[6] = &PPUADDR;
+    register_action[7] = &PPUDATA;
+    regs[2] = 0xA0;
+}
+
 void PPU::connectBus(Bus *bus){
     this->bus = bus;
 }
 
 unsigned char PPU::readMemory(unsigned short address){
-    return 2;
+    is_read = true;
+    unsigned char returned_value = regs[address & 0x07];
+    (this->*register_action[address & 0x7])();
+    return returned_value;
 }
 
 void PPU::writeMemory(unsigned short address, unsigned char value){
-
+    is_read = false;
+    this->value = value;
+    (this->*register_action[address & 0x7])();
 }
 
 void PPU::printFrame(){
+    if(frameCount > 200) return;
     char *filename = new char[30];
     memset(filename, 0, 30);
     sprintf(filename, "images/frame%d.bmp", frameCount++ );
     printf("%s", filename);
-    if(frameCount > 200) return;
     //make_frame here:
     
 
 
 
 
-
+    img->writeImage(filename);
     delete[] filename;
 }
 
 void PPU::testMake(){ //display all sprites in grayscale;
     Color cols[] = {{0x00,0x00,0x00}, {0x3f,0x3f,0x3f}, {0x7f,0x7f,0x7f}, {0xcf,0xcf,0xcf}};
-    img.makeImage(256, 128);
+    img->makeImage(256, 128);
     for(int i = 0; i< 0x2000; i += 16){
         int y = (i/0x200)*8;
         int x = (i % 0x200)/2;
@@ -103,9 +122,41 @@ void PPU::testMake(){ //display all sprites in grayscale;
             for(int k=1; k <= 8; k++){
                 result[j][k-1] = (bytesl[j] & bit_mask[8-k])? 1 : 0;
                 result[j][k-1] += (bytesr[j] & bit_mask[8-k])? 2 : 0;
-                img.setPixel(x+k-1, y+7-j, cols[result[j][k-1]]);
+                img->setPixel(x+k-1, y+7-j, cols[result[j][k-1]]);
             }
         }
     }
-    img.writeImage("images/test2.bmp"); 
+    img->writeImage("images/test2.bmp"); 
+}
+
+
+//regs functions
+void PPU::PPUCTRL(){
+    regs[0] = value;
+}
+void PPU::PPUMASK(){
+    
+}
+void PPU::PPUSTATUS(){
+    regs[2] &= 0x7F;
+    write_ppu_status = 0;
+}
+void PPU::OAMADDR(){
+    
+}
+void PPU::OAMDATA(){
+    
+}
+void PPU::PPUSCROLL(){
+    if(write_ppu_status == 0) regs[5] = value;
+    else regs[6] = value;
+    write_ppu_status ^= 1;
+}
+void PPU::PPUADDR(){//value *((unsigned short *)(regs+7));
+    if(write_ppu_status == 0) regs[7] = value;
+    else regs[8] = value;
+    write_ppu_status ^= 1;
+}
+void PPU::PPUDATA(){
+    printf("Hello wordl");
 }

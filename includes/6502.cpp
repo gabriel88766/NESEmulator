@@ -792,7 +792,7 @@ void CPU::nextInstruction(){
     invoke(instructions[opcode].address_mode, *this);
     invoke(instructions[opcode].instruction, *this);
     total_cycles += instructions[opcode].cycles;
-    //if(PC == 0x3469) {printf("success\n total cycles = %d\n", total_cycles); exit(0);} //Klauss
+    printState();
 }
 
 void CPU::powerON(){

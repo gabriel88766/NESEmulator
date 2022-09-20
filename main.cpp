@@ -13,11 +13,12 @@ int main(){
     cartridge.read("testROM/Super_mario_brothers.nes");
     cpu.powerON();
     //ppu.testMake(); 
+    cpu.printState();
     while(true){
-        //cpu.nextInstruction();
-    
+        cpu.nextInstruction();
+        //bus.readAddress(0x2007);
     }
-
+    
 
     //Make images
     /*
