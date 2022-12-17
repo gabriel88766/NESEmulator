@@ -65,14 +65,14 @@ unsigned char bit_mask[] = { 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
 PPU::PPU(){
     img = new Image();
     img->makeImage(256,240);
-    register_action[0] = &PPUCTRL;
-    register_action[1] = &PPUMASK;
-    register_action[2] = &PPUSTATUS;
-    register_action[3] = &OAMADDR;
-    register_action[4] = &OAMDATA;
-    register_action[5] = &PPUSCROLL;
-    register_action[6] = &PPUADDR;
-    register_action[7] = &PPUDATA;
+    register_action[0] = &PPU::PPUCTRL;
+    register_action[1] = &PPU::PPUMASK;
+    register_action[2] = &PPU::PPUSTATUS;
+    register_action[3] = &PPU::OAMADDR;
+    register_action[4] = &PPU::OAMDATA;
+    register_action[5] = &PPU::PPUSCROLL;
+    register_action[6] = &PPU::PPUADDR;
+    register_action[7] = &PPU::PPUDATA;
     regs[2] = 0xA0;
 }
 
@@ -126,6 +126,7 @@ void PPU::testMake(){ //display all sprites in grayscale;
             }
         }
     }
+    printf("cheguei aqui \n");
     img->writeImage("images/test2.bmp"); 
 }
 
