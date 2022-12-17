@@ -18,18 +18,5 @@ int main(){
         cpu.nextInstruction();
         //bus.readAddress(0x2007);
     }
-    
-
-    //Make images
-    /*
-    Image img;
-    img.makeImage(256, 256);
-    for(int i = 0; i < 256; i++){
-        for(int j = 0; j < 256; j++){
-            unsigned char value = (i+j)/2;
-            img.setPixel(i, j, { value, value, value});
-        }
-    }
-    img.writeImage("images/data.bmp");
-    */
+   
 }
