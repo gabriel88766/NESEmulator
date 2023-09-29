@@ -6,23 +6,28 @@
 class Bus;
 class Image;
 
+
+
 class PPU{
 private:
     Bus *bus;
+    Color colors[4];
     unsigned char regs[10]; 
     unsigned char VRAM[0x800];
     Image *img;
     int frameCount = 0;
     bool is_read;
     unsigned char value;
+    unsigned char retVal;
     int write_ppu_status;
-    void(PPU::*register_action[8])();
+    
 public:
     PPU();
     void connectBus(Bus *bus);
     unsigned char readMemory(unsigned short address);
     void writeMemory(unsigned short address, unsigned char value);
     void printFrame();
+    void writeSprite(int x, int y, int spr);
     void testMake();
 
     //regs functions

@@ -10,12 +10,11 @@ int main(){
     bus.connectCPU(&cpu);
     bus.connectCartridge(&cartridge);
     bus.connectPPU(&ppu);
-    cartridge.read("testROM/Super_mario_brothers.nes");
+    cartridge.read("testROM/Super_Mario_Bros.nes");
     cpu.powerON();
-    ppu.testMake(); 
-    cpu.printState();
-    /*while(true){
+    //ppu.testMake(); 
+    while(true){
         cpu.nextInstruction();
         //bus.readAddress(0x2007);
-    }*/   
+    }   
 }
