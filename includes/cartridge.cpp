@@ -11,7 +11,7 @@ void Cartridge::connectBus(Bus *bus){
     this->bus = bus;
 }
 
-void Cartridge::read(const char *filename){
+void Cartridge::read(const char *filename){// default nes 40K
     std::ifstream input(filename, std::ios::binary);
     header = new unsigned char[16];
     input.read( (char*)header, 16 );

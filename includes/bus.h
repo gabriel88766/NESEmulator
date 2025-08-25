@@ -22,6 +22,8 @@ public:
     void connectPPU(PPU *ppu);
     unsigned char readAddress(unsigned short address);
     void writeAddress(unsigned short address, unsigned char value);
+    void setNMI();
+    long long int getCycles();
 };
 
 #endif

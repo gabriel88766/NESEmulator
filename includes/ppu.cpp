@@ -60,8 +60,6 @@ Color color_pallete_1[] = {
     { 0x78, 0x78, 0x78}
 };
 
-unsigned char bit_mask[] = { 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
-
 PPU::PPU(){
     img = new Image();
     img->makeImage(256,240);
@@ -82,9 +80,8 @@ void PPU::connectBus(Bus *bus){
 
 unsigned char PPU::readMemory(unsigned short address){
     is_read = true;
-    unsigned char returned_value = regs[address & 0x07];
     (this->*register_action[address & 0x7])();
-    return returned_value;
+    return retVal;
 }
 
 void PPU::writeMemory(unsigned short address, unsigned char value){
@@ -98,7 +95,6 @@ void PPU::printFrame(){
     char *filename = new char[30];
     memset(filename, 0, 30);
     sprintf(filename, "images/frame%d.bmp", frameCount++ );
-    printf("%s", filename);
     //make_frame here:
     
 
@@ -109,38 +105,51 @@ void PPU::printFrame(){
     delete[] filename;
 }
 
-void PPU::testMake(){ //display all sprites in grayscale;
-    Color cols[] = {{0x00,0x00,0x00}, {0x3f,0x3f,0x3f}, {0x7f,0x7f,0x7f}, {0xcf,0xcf,0xcf}};
-    img->makeImage(256, 128);
-    for(int i = 0; i< 0x2000; i += 16){
-        int y = (i/0x200)*8;
-        int x = (i % 0x200)/2;
-        unsigned char bytesl[8], bytesr[8], result[8][8];
+void PPU::writeSprite(int spr){//the sprite number
+    unsigned short offset = 0x6000 + spr*16;
+    for(int i=0;i<8;i++){
+        unsigned char b1 = bus->readAddress(offset+i);
+        unsigned char b2 = bus->readAddress(offset+8+i);
         for(int j=0;j<8;j++){
-            bytesl[j] = bus->readAddress(0x6000+i+j); 
-            bytesr[j] = bus->readAddress(0x6000+i+j+8);
-            for(int k=1; k <= 8; k++){
-                result[j][k-1] = (bytesl[j] & bit_mask[8-k])? 1 : 0;
-                result[j][k-1] += (bytesr[j] & bit_mask[8-k])? 2 : 0;
-                img->setPixel(x+k-1, y+7-j, cols[result[j][k-1]]);
+            sprite[i][j] = b1 & (1 << (7-j)) ? 1 : 0;
+            sprite[i][j] += b2 & (1 << (7-j)) ? 2 : 0;
+        }
+    }
+}
+
+void PPU::testMake(){ //display all sprites in grayscale;
+    Color cols[] = {{0x00,0x00,0x00}, {0x7f,0x7f,0x7f}, {0x3f,0x3f,0x3f}, {0xcf,0xcf,0xcf}};
+    img->makeImage(128, 256);
+    for(int i = 0; i< 0x2000; i += 16){
+        int y = (i/0x100)*8;
+        int x = (i % 0x100)/2;
+        writeSprite(i/16);
+        for(int j=0;j<8;j++){
+            for(int k=0; k < 8; k++){
+                img->setPixel(x+k, y+7-j, cols[sprite[j][k]]);
             }
         }
     }
-    printf("cheguei aqui \n");
     img->writeImage("images/test2.bmp"); 
 }
 
+void PPU::vblank(){
+    if(regs[0] & 0x80){
+        bus->setNMI();
+    }
+    regs[2] |= 0x80;
+}
 
 //regs functions
 void PPU::PPUCTRL(){
-    regs[0] = value;
+    if(bus->getCycles() >= 30000) regs[0] = value;
 }
 void PPU::PPUMASK(){
     
 }
 void PPU::PPUSTATUS(){
+    retVal = regs[2];
     regs[2] &= 0x7F;
-    write_ppu_status = 0;
 }
 void PPU::OAMADDR(){
     

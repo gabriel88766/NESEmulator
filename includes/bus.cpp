@@ -2,7 +2,6 @@
 #include <fstream>
 #include <cstring>
 
-
 void Bus::connectCPU(CPU *cpu){
     this->cpu = cpu;
     this->cpu->connectBus(this); 
@@ -22,16 +21,16 @@ unsigned char Bus::readAddress(unsigned short address){
     if(address < 0x2000){
         return memory[address & 0x800];
     }else if(address < 0x4000){
-        ppu->readMemory(address);
+        return ppu->readMemory(address);
     }else if(address < 0x4020){
         //apu
     }else{
         //cartridge area
-        if(address >= 0x8000){
+        if(address >= 0x6000){
             return cartridge->readMemory(address);
         }
     }
-    
+    return 0;
 }
 
 void Bus::writeAddress(unsigned short address, unsigned char value){
@@ -44,4 +43,12 @@ void Bus::writeAddress(unsigned short address, unsigned char value){
     }else{
 
     }
+}
+
+void Bus::setNMI(){
+    cpu->setnmi();
+}
+
+long long Bus::getCycles(){
+    return cpu->total_cycles;
 }

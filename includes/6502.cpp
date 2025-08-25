@@ -805,6 +805,7 @@ void CPU::powerON(){
 void CPU::reset(){
     setI();
     S -= 3;
+    P |= 0x04;
     PC = bus->readAddress(0xFFFD) << 8;
     PC |= bus->readAddress(0xFFFC);
 }

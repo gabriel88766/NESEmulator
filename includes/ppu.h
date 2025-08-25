@@ -9,12 +9,15 @@ class Image;
 class PPU{
 private:
     Bus *bus;
+    Color colors[4];
+    unsigned char sprite[8][8];
     unsigned char regs[10]; 
     unsigned char VRAM[0x800];
     Image *img;
     int frameCount = 0;
     bool is_read;
     unsigned char value;
+    unsigned char retVal;
     int write_ppu_status;
     void(PPU::*register_action[8])();
 public:
@@ -24,7 +27,8 @@ public:
     void writeMemory(unsigned short address, unsigned char value);
     void printFrame();
     void testMake();
-
+    void writeSprite(int spr);
+    void vblank();
     //regs functions
     void PPUCTRL(); //reg 0
     void PPUMASK(); //reg 1
