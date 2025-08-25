@@ -96,7 +96,6 @@ void PPU::writeMemory(unsigned short address, unsigned char value){
     is_read = false;
     this->value = value;
     int addr = address & 0x7;
-    printf("%d\n", addr);
     (this->*register_action[address & 0x7])();
 }
 
@@ -106,7 +105,7 @@ void PPU::printFrame(){
     memset(filename, 0, 30);
     sprintf(filename, "images/frame%d.bmp", frameCount++ );
     //make_frame here:
-    
+        
 
 
 
@@ -140,6 +139,8 @@ void PPU::testMake(){ //display all sprites in grayscale;
             }
         }
     }
+}
+
 void PPU::writeSprite(int x, int y, int spr){ //Write some sprite in the image file, soon setPixel must be modified
     int offset = 0x6000+16*spr;
     for(int j=0;j<8;j++){
