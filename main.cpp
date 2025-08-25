@@ -12,7 +12,7 @@ int main(){
     bus.connectCPU(&cpu);
     bus.connectCartridge(&cartridge);
     bus.connectPPU(&ppu);
-    cartridge.read("testROM/Super_Mario_Bros.nes");
+    cartridge.read("testROM/Super_Mario_Brothers.nes");
     cpu.powerON();
     ppu.testMake(); 
     cpu.printState();

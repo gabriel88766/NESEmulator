@@ -95,7 +95,6 @@ unsigned char PPU::readMemory(unsigned short address){
 void PPU::writeMemory(unsigned short address, unsigned char value){
     is_read = false;
     this->value = value;
-    int addr = address & 0x7;
     (this->*register_action[address & 0x7])();
 }
 
@@ -105,7 +104,7 @@ void PPU::printFrame(){
     memset(filename, 0, 30);
     sprintf(filename, "images/frame%d.bmp", frameCount++ );
     //make_frame here:
-        
+
 
 
 
@@ -154,18 +153,6 @@ void PPU::writeSprite(int x, int y, int spr){ //Write some sprite in the image f
     }
 }
 
-void PPU::testMake(){ //display all sprites in grayscale, test!
-    img->makeImage(256, 128);
-    for(int i = 0; i< 0x200; i++){
-        int y = ((16*i) / 0x200)*8;
-        int x = ((16*i) % 0x200)/2;
-        writeSprite(x, y, i);
-    }
-    img->writeImage("images/test2.bmp"); 
-}
-
-
-
 void PPU::vblank(){
     if(regs[0] & 0x80){
         bus->setNMI();
@@ -181,7 +168,6 @@ void PPU::PPUMASK(){
     
 }
 void PPU::PPUSTATUS(){
-    retVal = regs[2];
     retVal = regs[2];
     regs[2] &= 0x7F;
 }
