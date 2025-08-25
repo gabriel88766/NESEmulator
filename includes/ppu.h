@@ -6,6 +6,8 @@
 class Bus;
 class Image;
 
+
+
 class PPU{
 private:
     Bus *bus;
@@ -19,13 +21,14 @@ private:
     unsigned char value;
     unsigned char retVal;
     int write_ppu_status;
-    void(PPU::*register_action[8])();
+    
 public:
     PPU();
     void connectBus(Bus *bus);
     unsigned char readMemory(unsigned short address);
     void writeMemory(unsigned short address, unsigned char value);
     void printFrame();
+    void writeSprite(int x, int y, int spr);
     void testMake();
     void writeSprite(int spr);
     void vblank();

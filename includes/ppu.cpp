@@ -2,6 +2,18 @@
 #include <cstdio>
 #include <cstring>
 
+void(PPU::*register_action[])() = {
+    &PPU::PPUCTRL,
+    &PPU::PPUMASK,
+    &PPU::PPUSTATUS,
+    &PPU::OAMADDR,
+    &PPU::OAMDATA,
+    &PPU::PPUSCROLL,
+    &PPU::PPUADDR,
+    &PPU::PPUDATA
+};
+
+
 Color color_pallete_1[] = {
     { 0x00, 0x00, 0x00},
     { 0xfc, 0xfc, 0xfc},
@@ -61,16 +73,12 @@ Color color_pallete_1[] = {
 };
 
 PPU::PPU(){
-    img = new Image();
-    img->makeImage(256,240);
-    register_action[0] = &PPU::PPUCTRL;
-    register_action[1] = &PPU::PPUMASK;
-    register_action[2] = &PPU::PPUSTATUS;
-    register_action[3] = &PPU::OAMADDR;
-    register_action[4] = &PPU::OAMDATA;
-    register_action[5] = &PPU::PPUSCROLL;
-    register_action[6] = &PPU::PPUADDR;
-    register_action[7] = &PPU::PPUDATA;
+    img = new Image();  //for debugging
+    img->makeImage(256,240); //also
+    colors[0] = {0x00, 0x00, 0x00}; //also
+    colors[1] = {0x3f, 0x3f, 0x3f};
+    colors[2] = {0x7f, 0x7f, 0x7f};
+    colors[3] = {0xcf, 0xcf, 0xcf}; //to here
     regs[2] = 0xA0;
 }
 
@@ -87,6 +95,8 @@ unsigned char PPU::readMemory(unsigned short address){
 void PPU::writeMemory(unsigned short address, unsigned char value){
     is_read = false;
     this->value = value;
+    int addr = address & 0x7;
+    printf("%d\n", addr);
     (this->*register_action[address & 0x7])();
 }
 
@@ -130,8 +140,30 @@ void PPU::testMake(){ //display all sprites in grayscale;
             }
         }
     }
+void PPU::writeSprite(int x, int y, int spr){ //Write some sprite in the image file, soon setPixel must be modified
+    int offset = 0x6000+16*spr;
+    for(int j=0;j<8;j++){
+        unsigned char bytesl = bus->readAddress(offset+j); 
+        unsigned char bytesr = bus->readAddress(offset+j+8);
+        for(int k=0; k < 8; k++){
+            unsigned curColor = (bytesl & (1 << (7-k)))? 1 : 0;
+            curColor += (bytesr & (1 << (7-k)))? 2 : 0;
+            img->setPixel(x+k, y+7-j, colors[curColor]);
+        }
+    }
+}
+
+void PPU::testMake(){ //display all sprites in grayscale, test!
+    img->makeImage(256, 128);
+    for(int i = 0; i< 0x200; i++){
+        int y = ((16*i) / 0x200)*8;
+        int x = ((16*i) % 0x200)/2;
+        writeSprite(x, y, i);
+    }
     img->writeImage("images/test2.bmp"); 
 }
+
+
 
 void PPU::vblank(){
     if(regs[0] & 0x80){
@@ -148,6 +180,7 @@ void PPU::PPUMASK(){
     
 }
 void PPU::PPUSTATUS(){
+    retVal = regs[2];
     retVal = regs[2];
     regs[2] &= 0x7F;
 }
