@@ -74,7 +74,7 @@ Color color_pallete_1[] = {
 
 PPU::PPU(){
     img = new Image();  //for debugging
-    img->makeImage(240,256); //also
+    img->makeImage(256,240); //also
     colors[0] = {0x00, 0x00, 0x00}; //also
     colors[1] = {0x3f, 0x3f, 0x3f};
     colors[2] = {0x7f, 0x7f, 0x7f};
@@ -101,7 +101,7 @@ void PPU::writeMemory(unsigned short address, unsigned char value){
 void PPU::printFrame(){
     if(!img){
         img = new Image();  //for debugging
-        img->makeImage(240,256); //also
+        img->makeImage(256,240); //also
     }
     if(frameCount > 200) return; //don't want to make infinite frames, at least not now!
     char *filename = new char[30];
@@ -110,48 +110,29 @@ void PPU::printFrame(){
     //make_frame here:
     for(int i=0;i<30;i++){
         for(int j=0;j<32;j++){
-            // printf("0x%02X ", VRAM[32*i+j]);
-            writeSprite(8*j, 8*i, VRAM[32*i+j]);
-            
+            writeTile(8*j, 8*i, VRAM[0x2000 + 32*i+j]);
         }
-        printf("\n");
     }
-
-
-
-
     img->writeImage(filename);
     delete[] filename;
 }
 
-void PPU::writeSprite(int spr){//the sprite number
-    unsigned short offset = 0x6000 + spr*16;
-    for(int i=0;i<8;i++){
-        unsigned char b1 = bus->readAddress(offset+i);
-        unsigned char b2 = bus->readAddress(offset+8+i);
-        for(int j=0;j<8;j++){
-            sprite[i][j] = b1 & (1 << (7-j)) ? 1 : 0;
-            sprite[i][j] += b2 & (1 << (7-j)) ? 2 : 0;
-        }
+void PPU::writeTile(int x, int y, int spr){ //Write some tile in the image file, fetch color from 
+    unsigned short memplc = 0x3C0 + 8*(x/32) + (y/32);
+    unsigned char color = VRAM[0x2000 + memplc];
+    if((x % 32) >= 16){
+        if((y % 32) >= 16) color = (color >> 6) & 3;
+        else color = (color >> 4) & 3;
+    }else{
+        if((y % 32) >= 16) color = (color >> 2) & 3;
+        else color = color & 3;
     }
-}
+    colors[0] = color_pallete_1[VRAM[(0x3F00+color*4) & 0x3F1F]];
+    colors[1] = color_pallete_1[VRAM[(0x3F00+color*4 + 1) & 0x3F1F]];
+    colors[2] = color_pallete_1[VRAM[(0x3F00+color*4 + 2) & 0x3F1F]];
+    colors[3] = color_pallete_1[VRAM[(0x3F00+color*4 + 3) & 0x3F1F]];
 
-void PPU::testMake(){ //display all sprites in grayscale;
-    Color cols[] = {{0x00,0x00,0x00}, {0x7f,0x7f,0x7f}, {0x3f,0x3f,0x3f}, {0xcf,0xcf,0xcf}};
-    img->makeImage(240, 256);
-    for(int i = 0; i< 0x2000; i += 16){
-        int y = (i/0x100)*8;
-        int x = (i % 0x100)/2;
-        writeSprite(i/16);
-        for(int j=0;j<8;j++){
-            for(int k=0; k < 8; k++){
-                img->setPixel(x+k, y+7-j, cols[sprite[j][k]]);
-            }
-        }
-    }
-}
 
-void PPU::writeSprite(int x, int y, int spr){ //Write some sprite in the image file, soon setPixel must be modified
     int offset = 0x6000+16*spr;
     if(regs[0] & 0x10) offset += 0x1000;
     for(int j=0;j<8;j++){
@@ -160,7 +141,7 @@ void PPU::writeSprite(int x, int y, int spr){ //Write some sprite in the image f
         for(int k=0; k < 8; k++){
             unsigned curColor = (bytesl & (1 << (7-k)))? 1 : 0;
             curColor += (bytesr & (1 << (7-k)))? 2 : 0;
-            img->setPixel(x+k, y+7-j, colors[curColor]);
+            img->setPixel(x+k,240 - (y+j), colors[curColor]);
         }
     }
 }
@@ -175,7 +156,6 @@ void PPU::vblank(){
         bus->setNMI();
     }
     regs[2] |= 0x80;
-    
 }
 
 //regs functions
@@ -217,9 +197,25 @@ void PPU::PPUDATA(){
     address |= regs[8];
     address &= 0x3FFF;
     if(is_read){
-        retVal = VRAM[address & 0x7FF]; //horizontal
+        if(address < 0x2000){
+            //not used yet.
+        }else if(address < 0x3000){
+            retVal = VRAM[address];
+        }else if(address < 0x3F00){
+            retVal = VRAM[address & 0x2FFF]; //mirror
+        }else{
+            retVal = VRAM[address];
+        }
     }else{
-        VRAM[address & 0x7FF] = value;
+        if(address < 0x2000){
+            //not used yet.
+        }else if(address < 0x3000){
+            VRAM[address] = value;
+        }else if(address < 0x3F00){
+            VRAM[address & 0x2FFF] = value;
+        }else{
+            VRAM[address] = value;
+        }
     }
 
 

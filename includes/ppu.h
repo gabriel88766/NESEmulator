@@ -12,9 +12,9 @@ class PPU{
 private:
     Bus *bus;
     Color colors[4];
-    unsigned char sprite[8][8];
+    unsigned char tile[8][8];
     unsigned char regs[10]; 
-    unsigned char VRAM[0x800];
+    unsigned char VRAM[0x4000]; //not accurate, however it will ease the program
     unsigned char OAM[0x100];
     Image *img;
     int frameCount = 0;
@@ -29,9 +29,7 @@ public:
     unsigned char readMemory(unsigned short address);
     void writeMemory(unsigned short address, unsigned char value);
     void printFrame();
-    void writeSprite(int x, int y, int spr);
-    void testMake();
-    void writeSprite(int spr);
+    void writeTile(int x, int y, int spr);
     void writeOAM(unsigned short address, unsigned char value);
     void vblank();
     //regs functions
