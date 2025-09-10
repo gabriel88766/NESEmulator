@@ -5,7 +5,7 @@
 long long int nvb = 0;
 const long long int clock_frame = 29829;
 int main(){
-    freopen("out", "w", stdout); //test input
+    // freopen("out", "w", stdout); //test input
     Bus bus;
     CPU cpu;
     Cartridge cartridge;
@@ -13,10 +13,11 @@ int main(){
     bus.connectCPU(&cpu);
     bus.connectCartridge(&cartridge);
     bus.connectPPU(&ppu);
-    // cartridge.read("testROM/Super_Mario_Bros.nes");
-    cartridge.read("testROM/Balloon_fight.nes");
+    cartridge.read("testROM/Super_Mario_Bros.nes");
+    // cartridge.read("testROM/Balloon_fight.nes");
+    // cartridge.read("testROM/color_test.nes");
     cpu.powerON();
-    ppu.testMake(); 
+    // ppu.testMake(); 
     // cpu.printState();
     while(true){
         if(cpu.total_cycles >= nvb){

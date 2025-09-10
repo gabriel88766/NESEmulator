@@ -794,14 +794,14 @@ void CPU::nextInstruction(){
     invoke(instructions[opcode].address_mode, *this);
     invoke(instructions[opcode].instruction, *this);
     total_cycles += instructions[opcode].cycles;
-    printState(opc);
+    // printState(opc);
 }
 
 void CPU::powerON(){
     P = 0x34;
     A = X = Y = 0;
     S = 0xFD;
-    PC = 0xC000;
+    PC = 0x8000;
     total_cycles = 0;
 }
 

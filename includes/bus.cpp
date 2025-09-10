@@ -39,7 +39,15 @@ void Bus::writeAddress(unsigned short address, unsigned char value){
     }else if(address < 0x4000){
         ppu->writeMemory(address, value);
     }else if(address < 0x4020){
-
+        if(address == 0x4014){
+            //special
+            cpu->total_cycles += 513;
+            unsigned short begin = value;
+            begin <<= 8;
+            for(unsigned short j = 0; j < 0x100; j++){
+                ppu->writeOAM(j, memory[begin + j]);
+            }
+        }
     }else{
 
     }

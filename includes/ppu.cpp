@@ -74,7 +74,7 @@ Color color_pallete_1[] = {
 
 PPU::PPU(){
     img = new Image();  //for debugging
-    img->makeImage(256,240); //also
+    img->makeImage(240,256); //also
     colors[0] = {0x00, 0x00, 0x00}; //also
     colors[1] = {0x3f, 0x3f, 0x3f};
     colors[2] = {0x7f, 0x7f, 0x7f};
@@ -99,12 +99,23 @@ void PPU::writeMemory(unsigned short address, unsigned char value){
 }
 
 void PPU::printFrame(){
-    if(frameCount > 20) return; //don't want to make infinite frames, at least not now!
+    if(!img){
+        img = new Image();  //for debugging
+        img->makeImage(240,256); //also
+    }
+    if(frameCount > 200) return; //don't want to make infinite frames, at least not now!
     char *filename = new char[30];
     memset(filename, 0, 30);
     sprintf(filename, "images/frame%d.bmp", frameCount++ );
     //make_frame here:
-    for(int i)
+    for(int i=0;i<30;i++){
+        for(int j=0;j<32;j++){
+            // printf("0x%02X ", VRAM[32*i+j]);
+            writeSprite(8*j, 8*i, VRAM[32*i+j]);
+            
+        }
+        printf("\n");
+    }
 
 
 
@@ -127,7 +138,7 @@ void PPU::writeSprite(int spr){//the sprite number
 
 void PPU::testMake(){ //display all sprites in grayscale;
     Color cols[] = {{0x00,0x00,0x00}, {0x7f,0x7f,0x7f}, {0x3f,0x3f,0x3f}, {0xcf,0xcf,0xcf}};
-    img->makeImage(128, 256);
+    img->makeImage(240, 256);
     for(int i = 0; i< 0x2000; i += 16){
         int y = (i/0x100)*8;
         int x = (i % 0x100)/2;
@@ -142,6 +153,7 @@ void PPU::testMake(){ //display all sprites in grayscale;
 
 void PPU::writeSprite(int x, int y, int spr){ //Write some sprite in the image file, soon setPixel must be modified
     int offset = 0x6000+16*spr;
+    if(regs[0] & 0x10) offset += 0x1000;
     for(int j=0;j<8;j++){
         unsigned char bytesl = bus->readAddress(offset+j); 
         unsigned char bytesr = bus->readAddress(offset+j+8);
@@ -151,6 +163,10 @@ void PPU::writeSprite(int x, int y, int spr){ //Write some sprite in the image f
             img->setPixel(x+k, y+7-j, colors[curColor]);
         }
     }
+}
+
+void PPU::writeOAM(unsigned short address, unsigned char value){
+    OAM[address] = value;
 }
 
 void PPU::vblank(){
@@ -172,6 +188,7 @@ void PPU::PPUMASK(){
 void PPU::PPUSTATUS(){
     retVal = regs[2];
     regs[2] &= 0x7F;
+    write_ppu_status = 0;
 }
 void PPU::OAMADDR(){
     if(bus->getCycles() >= 30000) regs[3] = value;
@@ -189,10 +206,24 @@ void PPU::PPUSCROLL(){
     write_ppu_status ^= 1;
 }
 void PPU::PPUADDR(){//value *((unsigned short *)(regs+7));
-    if(write_ppu_status == 0) regs[7] = value;
-    else regs[8] = value;
+    if(write_ppu_status == 0) regs[7] = value; //high byte
+    else regs[8] = value; //low byte
     write_ppu_status ^= 1;
 }
 void PPU::PPUDATA(){
-    // printf("Hello wordl");
+    int inc = regs[0] & 0x4 ? 32 : 1;// : 32;
+    unsigned short address = regs[7];
+    address <<= 8;
+    address |= regs[8];
+    address &= 0x3FFF;
+    if(is_read){
+        retVal = VRAM[address & 0x7FF]; //horizontal
+    }else{
+        VRAM[address & 0x7FF] = value;
+    }
+
+
+    unsigned char nv = regs[8] + inc;
+    if(nv < regs[8]) regs[7]++;
+    regs[8] = nv; 
 }

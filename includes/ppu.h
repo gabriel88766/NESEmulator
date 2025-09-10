@@ -15,6 +15,7 @@ private:
     unsigned char sprite[8][8];
     unsigned char regs[10]; 
     unsigned char VRAM[0x800];
+    unsigned char OAM[0x100];
     Image *img;
     int frameCount = 0;
     bool is_read;
@@ -31,6 +32,7 @@ public:
     void writeSprite(int x, int y, int spr);
     void testMake();
     void writeSprite(int spr);
+    void writeOAM(unsigned short address, unsigned char value);
     void vblank();
     //regs functions
     void PPUCTRL(); //reg 0
