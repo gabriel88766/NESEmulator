@@ -99,12 +99,12 @@ void PPU::writeMemory(unsigned short address, unsigned char value){
 }
 
 void PPU::printFrame(){
-    if(frameCount > 200) return;
+    if(frameCount > 20) return; //don't want to make infinite frames, at least not now!
     char *filename = new char[30];
     memset(filename, 0, 30);
     sprintf(filename, "images/frame%d.bmp", frameCount++ );
     //make_frame here:
-
+    for(int i)
 
 
 
@@ -154,10 +154,12 @@ void PPU::writeSprite(int x, int y, int spr){ //Write some sprite in the image f
 }
 
 void PPU::vblank(){
+    printFrame();
     if(regs[0] & 0x80){
         bus->setNMI();
     }
     regs[2] |= 0x80;
+    
 }
 
 //regs functions
@@ -165,17 +167,21 @@ void PPU::PPUCTRL(){
     if(bus->getCycles() >= 30000) regs[0] = value;
 }
 void PPU::PPUMASK(){
-    
+    if(bus->getCycles() >= 30000) regs[1] = value;
 }
 void PPU::PPUSTATUS(){
     retVal = regs[2];
     regs[2] &= 0x7F;
 }
 void PPU::OAMADDR(){
-    
+    if(bus->getCycles() >= 30000) regs[3] = value;
 }
 void PPU::OAMDATA(){
-    
+    if(is_read){
+        retVal = regs[4];
+    }else{
+        if(bus->getCycles() >= 30000) regs[4] = value;
+    }
 }
 void PPU::PPUSCROLL(){
     if(write_ppu_status == 0) regs[5] = value;
@@ -188,5 +194,5 @@ void PPU::PPUADDR(){//value *((unsigned short *)(regs+7));
     write_ppu_status ^= 1;
 }
 void PPU::PPUDATA(){
-    printf("Hello wordl");
+    // printf("Hello wordl");
 }

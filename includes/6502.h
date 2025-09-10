@@ -122,7 +122,7 @@ public:
     void checkZ(unsigned char value);
     void checkN(unsigned char value);
     //Controllers and debug
-    void printState();
+    void printState(unsigned short opc);
     void nextInstruction();
     void powerON();
     void reset();

@@ -19,7 +19,7 @@ void Bus::connectPPU(PPU *ppu){
 
 unsigned char Bus::readAddress(unsigned short address){
     if(address < 0x2000){
-        return memory[address & 0x800];
+        return memory[address & 0x7FF];
     }else if(address < 0x4000){
         return ppu->readMemory(address);
     }else if(address < 0x4020){
@@ -35,7 +35,7 @@ unsigned char Bus::readAddress(unsigned short address){
 
 void Bus::writeAddress(unsigned short address, unsigned char value){
     if(address < 0x2000){
-        memory[address & 0x800] = value;
+        memory[address & 0x7FF] = value;
     }else if(address < 0x4000){
         ppu->writeMemory(address, value);
     }else if(address < 0x4020){
@@ -51,4 +51,12 @@ void Bus::setNMI(){
 
 long long Bus::getCycles(){
     return cpu->total_cycles;
+}
+
+void Bus::dumpStack(){
+    for(int i=0x100;i<=0x1FF;i++){
+        printf("0x%02X ", memory[i]);
+    }
+    printf("\n");
+    fflush(stdout);
 }

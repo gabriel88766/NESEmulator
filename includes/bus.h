@@ -24,6 +24,7 @@ public:
     void writeAddress(unsigned short address, unsigned char value);
     void setNMI();
     long long int getCycles();
+    void dumpStack();
 };
 
 #endif
