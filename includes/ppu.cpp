@@ -86,8 +86,6 @@ Color color_pallete_1[] = {
 PPU::PPU(){
     memset(VRAM, 0, sizeof(VRAM));
     memset(OAM, 0, sizeof(OAM));
-    img = new Image();  
-    img->makeImage(256,240);
     regs[2] = 0xA0;
 }
 
@@ -108,14 +106,6 @@ void PPU::writeMemory(unsigned short address, unsigned char value){
 }
 
 void PPU::printFrame(){
-    if(!img){
-        img = new Image();  //for debugging
-        img->makeImage(256,240); //also
-    }
-    if(frameCount > 200) return; //don't want to make infinite frames, at least not now!
-    char *filename = new char[30];
-    memset(filename, 0, 30);
-    sprintf(filename, "images/frame%d.bmp", frameCount++ );
     //make_frame here:
     for(int i=0;i<30;i++){
         for(int j=0;j<32;j++){
@@ -123,8 +113,7 @@ void PPU::printFrame(){
         }
     }
     //TODO write sprites!
-    img->writeImage(filename);
-    delete[] filename;
+
 }
 
 void PPU::writeTile(int x, int y){ //Write some tile in the image file, fetch color from 
@@ -144,7 +133,6 @@ void PPU::writeTile(int x, int y){ //Write some tile in the image file, fetch co
         else color_pat = color_pat & 3;
     }
     colors[0] = color_pallete_1[VRAM[0x3F00]];
-    // colors[0] = color_pallete_1[VRAM[(0x3F00+color_pat*4) & 0x3F1F]];
     colors[1] = color_pallete_1[VRAM[(0x3F00+color_pat*4 + 1) & 0x3F1F]];
     colors[2] = color_pallete_1[VRAM[(0x3F00+color_pat*4 + 2) & 0x3F1F]];
     colors[3] = color_pallete_1[VRAM[(0x3F00+color_pat*4 + 3) & 0x3F1F]];
@@ -158,8 +146,8 @@ void PPU::writeTile(int x, int y){ //Write some tile in the image file, fetch co
         for(int k=0; k < 8; k++){
             unsigned curColor = (bytesl & (1 << (7-k)))? 1 : 0;
             curColor += (bytesr & (1 << (7-k)))? 2 : 0;
-            color[x+k][y+j] = curColor;
-            img->setPixel(x+k, 240 - (y+j), colors[curColor]);
+            isbackground[x+k][y+j] = curColor > 0; 
+            framebuffer[x+k][y+j] = colors[curColor];
         }
     }
 }

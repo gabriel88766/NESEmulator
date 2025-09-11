@@ -1,13 +1,16 @@
+Downloading SDL:
 
-make objs >> cd includes, g++ -Wall -Wextra -O2 -g -c *.cpp
+mkdir vendored
+cd vendored
+git clone https://github.com/libsdl-org/SDL/tree/release-2.32.x
+cd SDL
+git checkout release-2.32.x
 
-make exe >> g++ -Wall -Wextra -g -O2 includes/*.o main.cpp -o main.exe
-
-
-final objective: 
+Building the project:
 
 cmake -S . -B build
 cmake --build build
 
+Apply changes:
 
 cmake --build build

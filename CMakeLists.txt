@@ -5,18 +5,30 @@ project(emuNES LANGUAGES CXX)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
-# Optional: Force static SDL build (no .so)
-set(SDL3_DISABLE_SHARED ON CACHE BOOL "" FORCE)
-set(SDL3_DISABLE_INSTALL ON CACHE BOOL "" FORCE)
+
+set(SOURCES
+    app.cpp
+    includes/6502.cpp
+    includes/bus.cpp
+    includes/ppu.cpp
+    includes/cartridge.cpp
+)
+
+set(HEADERS
+    includes/6502.h
+    includes/bus.h
+    includes/ppu.h
+    includes/cartridge.h
+)
 
 # Add SDL as subdirectory
 add_subdirectory(vendored/SDL EXCLUDE_FROM_ALL)
 
 # Build our hello executable
-add_executable(emuNES app.cpp)
+add_executable(emuNES ${SOURCES} ${HEADERS})
 
-# Link to SDL3
-target_link_libraries(emuNES PRIVATE SDL3::SDL3)
+# Link to SDL2
+target_link_libraries(emuNES PRIVATE SDL2::SDL2)
 
 # Set C++ standard
 target_compile_features(emuNES PRIVATE cxx_std_17)

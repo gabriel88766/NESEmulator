@@ -2,11 +2,15 @@
 #define PPU_H
 
 #include "bus.h"
-#include "ImageMaker.h"
 class Bus;
-class Image;
 
 
+struct Color{
+    unsigned char R;
+    unsigned char G;
+    unsigned char B;
+    //Alpha default FF
+};
 
 class PPU{
 private:
@@ -16,16 +20,15 @@ private:
     unsigned char regs[10]; 
     unsigned char VRAM[0x4000]; //not accurate, however it will ease the program
     unsigned char OAM[0x100];
-    unsigned char color[256][240]; //helper to detect collision.
-    Image *img;
+    bool isbackground[256][240];
     int frameCount = 0;
     bool is_read;
     unsigned char value;
     unsigned char retVal;
     unsigned char buffer;
     int write_ppu_status;
-    
 public:
+    Color framebuffer[256][240];
     PPU();
     void connectBus(Bus *bus);
     unsigned char readMemory(unsigned short address);
