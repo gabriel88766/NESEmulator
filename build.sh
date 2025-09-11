@@ -1,3 +1,4 @@
+!#/bin/bash
 cd includes
 g++ -Wall -Wextra -O2 -g -c *.cpp
 cd ..

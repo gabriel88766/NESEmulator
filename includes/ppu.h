@@ -21,6 +21,7 @@ private:
     bool is_read;
     unsigned char value;
     unsigned char retVal;
+    unsigned char buffer;
     int write_ppu_status;
     
 public:

@@ -14,7 +14,8 @@ int main(){
     bus.connectCartridge(&cartridge);
     bus.connectPPU(&ppu);
     // cartridge.read("testROM/Super_Mario_Bros.nes");
-    cartridge.read("testROM/Balloon_fight.nes");
+    // cartridge.read("testROM/Balloon_fight.nes");
+    cartridge.read("testROM/FieldCombat.nes");
     // cartridge.read("testROM/color_test.nes");
     cpu.powerON();
     // ppu.testMake(); 
