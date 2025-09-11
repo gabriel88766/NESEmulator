@@ -1,22 +1,22 @@
-cmake_minimum_required(VERSION 3.16.3)
+cmake_minimum_required(VERSION 3.16)
+project(emuNES LANGUAGES CXX)
 
-# set the project name
-project(NESEmulator VERSION 1.0)
+# Set output folders
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+# Optional: Force static SDL build (no .so)
+set(SDL3_DISABLE_SHARED ON CACHE BOOL "" FORCE)
+set(SDL3_DISABLE_INSTALL ON CACHE BOOL "" FORCE)
 
-# add the executable
-add_executable(gvNES.out main.cpp 
-    includes/6502.h includes/6502.cpp
-    includes/bus.h includes/bus.cpp
-    includes/ppu.h includes/ppu.cpp 
-    includes/cartridge.h includes/cartridge.cpp 
-    includes/ImageMaker.h includes/ImageMaker.cpp
-    )
+# Add SDL as subdirectory
+add_subdirectory(vendored/SDL EXCLUDE_FROM_ALL)
 
+# Build our hello executable
+add_executable(emuNES app.cpp)
 
+# Link to SDL3
+target_link_libraries(emuNES PRIVATE SDL3::SDL3)
 
-
-
-
+# Set C++ standard
+target_compile_features(emuNES PRIVATE cxx_std_17)

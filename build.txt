@@ -2,3 +2,12 @@
 make objs >> cd includes, g++ -Wall -Wextra -O2 -g -c *.cpp
 
 make exe >> g++ -Wall -Wextra -g -O2 includes/*.o main.cpp -o main.exe
+
+
+final objective: 
+
+cmake -S . -B build
+cmake --build build
+
+
+cmake --build build
