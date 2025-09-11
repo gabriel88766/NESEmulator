@@ -16,6 +16,7 @@ private:
     unsigned char regs[10]; 
     unsigned char VRAM[0x4000]; //not accurate, however it will ease the program
     unsigned char OAM[0x100];
+    unsigned char color[256][240]; //helper to detect collision.
     Image *img;
     int frameCount = 0;
     bool is_read;
@@ -30,7 +31,8 @@ public:
     unsigned char readMemory(unsigned short address);
     void writeMemory(unsigned short address, unsigned char value);
     void printFrame();
-    void writeTile(int x, int y, int spr);
+    void writeTile(int x, int y);
+    void writeSprites();
     void writeOAM(unsigned short address, unsigned char value);
     void vblank();
     //regs functions

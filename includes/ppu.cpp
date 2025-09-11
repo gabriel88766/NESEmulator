@@ -119,30 +119,38 @@ void PPU::printFrame(){
     //make_frame here:
     for(int i=0;i<30;i++){
         for(int j=0;j<32;j++){
-            writeTile(8*j, 8*i, VRAM[0x2000 + 32*i+j]);
+            writeTile(8*j, 8*i);
         }
     }
+    //TODO write sprites!
     img->writeImage(filename);
     delete[] filename;
 }
 
-void PPU::writeTile(int x, int y, int spr){ //Write some tile in the image file, fetch color from 
-    unsigned short memplc = 0x3C0 + (x/32) + 8*(y/32);
-    unsigned char color = VRAM[0x2000 + memplc];
-    if((y % 32) >= 16){
-        if((x % 32) >= 16) color = (color >> 6) & 3;
-        else color = (color >> 4) & 3;
+void PPU::writeTile(int x, int y){ //Write some tile in the image file, fetch color from 
+    int rx = x + regs[5];
+    int ry = y + regs[6];
+    unsigned short nametable = 0x2000;// + (regs[0] & 3) * 0x400;
+    if(rx >= 256) nametable += 0x400, rx -= 256;
+    if(ry >= 240) nametable += 0x800, ry -= 240;
+    unsigned short memplc1 = nametable + 32 * (ry/8) + rx/8;
+    unsigned short memplc2 = nametable + 0x3C0 + (rx/32) + 8*(ry/32);
+    unsigned char color_pat = VRAM[memplc2];
+    if((ry % 32) >= 16){
+        if((rx % 32) >= 16) color_pat = (color_pat >> 6) & 3;
+        else color_pat = (color_pat >> 4) & 3;
     }else{
-        if((x % 32) >= 16) color = (color >> 2) & 3;
-        else color = color & 3;
+        if((rx % 32) >= 16) color_pat = (color_pat >> 2) & 3;
+        else color_pat = color_pat & 3;
     }
-    colors[0] = color_pallete_1[VRAM[(0x3F00+color*4) & 0x3F1F]];
-    colors[1] = color_pallete_1[VRAM[(0x3F00+color*4 + 1) & 0x3F1F]];
-    colors[2] = color_pallete_1[VRAM[(0x3F00+color*4 + 2) & 0x3F1F]];
-    colors[3] = color_pallete_1[VRAM[(0x3F00+color*4 + 3) & 0x3F1F]];
+    colors[0] = color_pallete_1[VRAM[0x3F00]];
+    // colors[0] = color_pallete_1[VRAM[(0x3F00+color_pat*4) & 0x3F1F]];
+    colors[1] = color_pallete_1[VRAM[(0x3F00+color_pat*4 + 1) & 0x3F1F]];
+    colors[2] = color_pallete_1[VRAM[(0x3F00+color_pat*4 + 2) & 0x3F1F]];
+    colors[3] = color_pallete_1[VRAM[(0x3F00+color_pat*4 + 3) & 0x3F1F]];
 
 
-    int offset = 0x6000+16*spr;
+    int offset = 0x6000+16*VRAM[memplc1];
     if(regs[0] & 0x10) offset += 0x1000;
     for(int j=0;j<8;j++){
         unsigned char bytesl = bus->readAddress(offset+j); 
@@ -150,9 +158,14 @@ void PPU::writeTile(int x, int y, int spr){ //Write some tile in the image file,
         for(int k=0; k < 8; k++){
             unsigned curColor = (bytesl & (1 << (7-k)))? 1 : 0;
             curColor += (bytesr & (1 << (7-k)))? 2 : 0;
-            img->setPixel(x+k,240 - (y+j), colors[curColor]);
+            color[x+k][y+j] = curColor;
+            img->setPixel(x+k, 240 - (y+j), colors[curColor]);
         }
     }
+}
+
+void PPU::writeSprites(){
+
 }
 
 void PPU::writeOAM(unsigned short address, unsigned char value){

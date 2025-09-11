@@ -5,7 +5,7 @@
 long long int nvb = 0;
 const long long int clock_frame = 29829;
 int main(){
-    // freopen("out", "w", stdout); //test input
+    freopen("out", "w", stdout); //test input
     Bus bus;
     CPU cpu;
     Cartridge cartridge;
