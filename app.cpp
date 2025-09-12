@@ -42,6 +42,7 @@ void SetPixel(SDL_Surface* surface, int x, int y, Uint32 color) {
 }
 
 int main(int argc, char** args){
+    freopen("testROM/logs", "w", stdout); //for debug
     if (SDL_Init( SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK ) < 0) {
 		cout << "Error initializing SDL: " << SDL_GetError() << endl;
 		return 1;
@@ -70,7 +71,10 @@ int main(int argc, char** args){
     bus.connectCPU(&cpu);
     bus.connectCartridge(&cartridge);
     bus.connectPPU(&ppu);
-    cartridge.read("testROM/FieldCombat.nes"); //this must be selectable with a button
+    // cartridge.read("testROM/Magmax.nes"); //this must be selectable with a button
+    // cartridge.read("testROM/FieldCombat.nes"); //this must be selectable with a button
+    // cartridge.read("testROM/Super_Mario_Bros.nes");
+    cartridge.read("testROM/Balloon_fight.nes");
     cpu.powerON();
     bool running = true;
     SDL_FillRect( winSurface, NULL, SDL_MapRGB( winSurface->format, 255, 0, 255 ) );

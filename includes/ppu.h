@@ -20,7 +20,7 @@ private:
     unsigned char regs[10]; 
     unsigned char VRAM[0x4000]; //not accurate, however it will ease the program
     unsigned char OAM[0x100];
-    bool isbackground[256][240];
+    bool isopaque[256][240];
     int frameCount = 0;
     bool is_read;
     unsigned char value;

@@ -106,21 +106,23 @@ void PPU::writeMemory(unsigned short address, unsigned char value){
 }
 
 void PPU::printFrame(){
+    printf("frame %d, x and y : %d, %d\n", ++frameCount, regs[5], regs[6]);
     //make_frame here:
-    for(int i=0;i<30;i++){
-        for(int j=0;j<32;j++){
-            writeTile(8*j, 8*i);
+    if(regs[1] & 0x08){
+        for(int i=0;i<30;i++){
+            for(int j=0;j<32;j++){
+                writeTile(8*j, 8*i);
+            }
         }
     }
-    //TODO write sprites!
-
+    if(regs[1] & 0x10) writeSprites();
 }
 
 void PPU::writeTile(int x, int y){ //Write some tile in the image file, fetch color from 
-    int rx = x + regs[5];
-    int ry = y + regs[6];
-    unsigned short nametable = 0x2000;// + (regs[0] & 3) * 0x400;
-    if(rx >= 256) nametable += 0x400, rx -= 256;
+    int rx = x + regs[5] + (regs[0] & 1 ? 256 : 0);
+    int ry = y + regs[6] + (regs[0] & 1 ? 240 : 0);
+    unsigned short nametable = 0x2000; //+ (regs[0] & 3) * 0x400;
+    if(rx >= 256) rx -= 256;
     if(ry >= 240) nametable += 0x800, ry -= 240;
     unsigned short memplc1 = nametable + 32 * (ry/8) + rx/8;
     unsigned short memplc2 = nametable + 0x3C0 + (rx/32) + 8*(ry/32);
@@ -146,14 +148,59 @@ void PPU::writeTile(int x, int y){ //Write some tile in the image file, fetch co
         for(int k=0; k < 8; k++){
             unsigned curColor = (bytesl & (1 << (7-k)))? 1 : 0;
             curColor += (bytesr & (1 << (7-k)))? 2 : 0;
-            isbackground[x+k][y+j] = curColor > 0; 
+            isopaque[x+k][y+j] = curColor > 0; 
             framebuffer[x+k][y+j] = colors[curColor];
         }
     }
 }
 
 void PPU::writeSprites(){
+    bool mode = regs[0] & 0x20 ? true : false;//true means 8x16, false means 8x8
+    unsigned short table = (regs[0] & 8)  && (!mode) ? 0x1000 : 0; 
+    for(int i=63;i>=0;i--){
+        unsigned char y = OAM[4*i];
+        unsigned char x = OAM[4*i + 3];
+        bool hidden = OAM[4*i + 2] & 0x20 ? true : false;
+        bool flipx = OAM[4*i + 2] & 0x40 ? true : false;
+        bool flipy = OAM[4*i + 2] & 0x80 ? true : false;
+        int color_pat = OAM[4*i + 2] & 3;
+        // colors[0] = color_pallete_1[VRAM[0x3F00]]; //doesn't matter
+        colors[1] = color_pallete_1[VRAM[(0x3F10+color_pat*4 + 1) & 0x3F1F]];
+        colors[2] = color_pallete_1[VRAM[(0x3F10+color_pat*4 + 2) & 0x3F1F]];
+        colors[3] = color_pallete_1[VRAM[(0x3F10+color_pat*4 + 3) & 0x3F1F]];
+        unsigned short offset = 0x6000 + table; 
 
+        int ysz;
+        if(mode){
+            ysz = 16;
+            if(OAM[4*i + 1] & 1) offset += 0x1000;
+            offset += 16 * (OAM[4*i+1] & 0xFE);
+        }else{
+            ysz = 8;
+            offset += 16 * OAM[4*i+1]; 
+        }
+        for(int j=0;j<ysz;j++){
+            unsigned char bytesl = bus->readAddress(offset+j); 
+            unsigned char bytesr = bus->readAddress(offset+j+8);
+            for(int k=0;k<8;k++){
+                unsigned curColor = (bytesl & (1 << (7-k)))? 1 : 0;
+                curColor += (bytesr & (1 << (7-k)))? 2 : 0;
+                // curColor = 2;
+                int rx = flipx ? x + 8 - k : x + k;
+                int ry = flipy ? y + ysz - j : y + j;
+                if(rx >= 256 || ry >= 240 || curColor == 0) continue;
+                if(hidden){
+                    if(!isopaque[rx][ry]) framebuffer[rx][ry] = colors[curColor];
+                }else{
+                    framebuffer[rx][ry] = colors[curColor];
+                }
+                if(i == 0 && curColor != 0 && isopaque[rx][ry]){
+                     regs[2] |= 0x40;
+                }
+            }
+        }
+    
+    }
 }
 
 void PPU::writeOAM(unsigned short address, unsigned char value){
@@ -219,7 +266,8 @@ void PPU::PPUDATA(){
         }else if(address < 0x3F00){
             buffer = VRAM[address & 0x2FFF]; //mirror
         }else{
-            retVal = buffer = VRAM[address & 0x3F1F];
+            if(!(address & 3)) retVal = buffer = VRAM[address & 0x3F0F];
+            else retVal = buffer = VRAM[address & 0x3F1F];
         }
     }else{
         if(address < 0x2000){
@@ -229,7 +277,8 @@ void PPU::PPUDATA(){
         }else if(address < 0x3F00){
             VRAM[address & 0x2FFF] = value;
         }else{
-            VRAM[address & 0x3F1F] = value;
+            if(!(address & 3)) VRAM[address & 0x3F0F] = value;
+            else VRAM[address & 0x3F1F] = value;
         }
     }
 
