@@ -1,6 +1,7 @@
 #include "ppu.h"
 #include <cstdio>
 #include <cstring>
+#include <cassert>
 
 void(PPU::*register_action[])() = {
     &PPU::PPUCTRL,
@@ -119,11 +120,11 @@ void PPU::printFrame(){
 }
 
 void PPU::writeTile(int x, int y){ //Write some tile in the image file, fetch color from 
-    int rx = x + regs[5] + (regs[0] & 1 ? 256 : 0);
-    int ry = y + regs[6] + (regs[0] & 1 ? 240 : 0);
-    unsigned short nametable = 0x2000; //+ (regs[0] & 3) * 0x400;
+    int rx = x + regs[5];
+    int ry = y + regs[6];
+    unsigned short nametable = 0x2000 + (regs[0] & 3) * 0x400;
     if(rx >= 256) rx -= 256;
-    if(ry >= 240) nametable += 0x800, ry -= 240;
+    if(ry >= 240) nametable ^= 0x800, ry -= 240;
     unsigned short memplc1 = nametable + 32 * (ry/8) + rx/8;
     unsigned short memplc2 = nametable + 0x3C0 + (rx/32) + 8*(ry/32);
     unsigned char color_pat = VRAM[memplc2];
