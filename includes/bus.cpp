@@ -17,6 +17,11 @@ void Bus::connectPPU(PPU *ppu){
     this->ppu->connectBus(this);
 }
 
+void Bus::connectAPU(APU *apu){
+    this->apu = apu;
+    this->apu->connectBus(this);
+}
+
 unsigned char Bus::readAddress(unsigned short address){
     if(address < 0x2000){
         return memory[address & 0x7FF];
@@ -24,6 +29,13 @@ unsigned char Bus::readAddress(unsigned short address){
         return ppu->readMemory(address);
     }else if(address < 0x4020){
         //apu
+        if(address == 0x4016){
+            unsigned char result = (regbut & 1) ? 0 : 1;  // active low
+            if (!strobe) {
+                regbut >>= 1;
+            }
+            return result;
+        }else apu->readMemory(address & 0x1F);
     }else{
         //cartridge area
         if(address >= 0x6000){
@@ -45,9 +57,16 @@ void Bus::writeAddress(unsigned short address, unsigned char value){
             unsigned short begin = value;
             begin <<= 8;
             for(unsigned short j = 0; j < 0x100; j++){
-                ppu->writeOAM(j, memory[begin + j]);
+                ppu->writeOAM(memory[begin + j]);
+                // ppu->writeOAM(j, memory[begin + j]);
             }
-        }
+        }else if(address == 0x4016){
+            strobe = value & 1;
+            if (strobe) {
+                regbut = buttons;
+            }
+            
+        }else apu->writeMemory(address & 0x1F, value);
     }else{
 
     }

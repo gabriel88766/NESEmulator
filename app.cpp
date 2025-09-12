@@ -2,6 +2,7 @@
 #include "includes/bus.h"
 #include "includes/ppu.h"
 #include "includes/cartridge.h"
+#include "includes/apu.h"
 #include <SDL2/SDL.h>
 #include <iostream>
 using namespace std;
@@ -68,50 +69,64 @@ int main(int argc, char** args){
     CPU cpu;
     Cartridge cartridge;
     PPU ppu;
+    APU apu;
+    bus.connectAPU(&apu);
     bus.connectCPU(&cpu);
     bus.connectCartridge(&cartridge);
     bus.connectPPU(&ppu);
-    // cartridge.read("testROM/Magmax.nes"); //this must be selectable with a button
+    cartridge.read("testROM/Magmax.nes"); //this must be selectable with a button
     // cartridge.read("testROM/FieldCombat.nes"); //this must be selectable with a button
     // cartridge.read("testROM/Super_Mario_Bros.nes");
-    cartridge.read("testROM/Balloon_fight.nes");
+    // cartridge.read("testROM/Balloon_fight.nes");
     cpu.powerON();
     bool running = true;
     SDL_FillRect( winSurface, NULL, SDL_MapRGB( winSurface->format, 255, 0, 255 ) );
     SDL_UpdateWindowSurface( window );
-    
+    unsigned char buttons = 0xFF;
     while (running) {
         Uint64 start = SDL_GetPerformanceCounter();
         SDL_Event e;
         // Do event loop
-        unsigned char buttons = 0x00;
+        
         while (SDL_PollEvent(&e)) {
             switch(e.type){
                 case SDL_QUIT:
                     return false;
                     break;
-                case SDL_KEYDOWN:
+                case SDL_KEYUP:
                     switch (e.key.keysym.sym) {
+                        case SDLK_RIGHT:  buttons |= 0x80; break; // Right
+                        case SDLK_LEFT:   buttons |= 0x40; break; // Left
+                        case SDLK_DOWN:   buttons |= 0x20; break; // Down
+                        case SDLK_UP:     buttons |= 0x10; break; // Up
+                        case SDLK_RETURN: buttons |= 0x08; break; // Start
+                        case SDLK_RSHIFT: buttons |= 0x04; break; // Select
                         case SDLK_z:      buttons |= 0x02; break; // B
                         case SDLK_x:      buttons |= 0x01; break; // A
-                        case SDLK_RSHIFT: buttons |= 0x04; break; // Select
-                        case SDLK_RETURN: buttons |= 0x08; break; // Start
-                        case SDLK_UP:     buttons |= 0x10; break; // Up
-                        case SDLK_DOWN:   buttons |= 0x20; break; // Down
-                        case SDLK_LEFT:   buttons |= 0x40; break; // Left
-                        case SDLK_RIGHT:  buttons |= 0x80; break; // Right
+                    }
+                    break;
+
+                case SDL_KEYDOWN:
+                    switch (e.key.keysym.sym) {
+                        case SDLK_RIGHT:  buttons &= ~0x80; break; // Right
+                        case SDLK_LEFT:   buttons &= ~0x40; break; // Left
+                        case SDLK_DOWN:   buttons &= ~0x20; break; // Down
+                        case SDLK_UP:     buttons &= ~0x10; break; // Up
+                        case SDLK_RETURN: buttons &= ~0x08; break; // Start
+                        case SDLK_RSHIFT: buttons &= ~0x04; break; // Select 
+                        case SDLK_z:      buttons &= ~0x02; break; // B
+                        case SDLK_x:      buttons &= ~0x01; break; // A
                     }
                     break;
             }
-
-
             if (e.type == SDL_QUIT) running = false;
-
         }
+        bus.buttons = buttons;
         // Do physics loop
         while(cpu.total_cycles < nvb){
             cpu.nextInstruction();
         }
+        
         nvb += clock_frame;
         ppu.vblank();
         // Do rendering loop

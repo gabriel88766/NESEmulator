@@ -12,6 +12,7 @@ set(SOURCES
     includes/bus.cpp
     includes/ppu.cpp
     includes/cartridge.cpp
+    includes/apu.cpp
 )
 
 set(HEADERS
@@ -19,6 +20,7 @@ set(HEADERS
     includes/bus.h
     includes/ppu.h
     includes/cartridge.h
+    includes/apu.h
 )
 
 # Add SDL as subdirectory

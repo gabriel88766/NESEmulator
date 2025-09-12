@@ -36,7 +36,7 @@ public:
     void printFrame();
     void writeTile(int x, int y);
     void writeSprites();
-    void writeOAM(unsigned short address, unsigned char value);
+    void writeOAM(unsigned char value);
     void vblank();
     //regs functions
     void PPUCTRL(); //reg 0

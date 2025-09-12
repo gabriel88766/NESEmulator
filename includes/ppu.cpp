@@ -106,11 +106,11 @@ void PPU::writeMemory(unsigned short address, unsigned char value){
 }
 
 void PPU::printFrame(){
-    printf("frame %d, x and y : %d, %d\n", ++frameCount, regs[5], regs[6]);
     //make_frame here:
     if(regs[1] & 0x08){
         for(int i=0;i<30;i++){
             for(int j=0;j<32;j++){
+                // if(j == 0 && (!(regs[1] & 0x2))) continue; //implement later, PPUMASK bit 1
                 writeTile(8*j, 8*i);
             }
         }
@@ -203,8 +203,8 @@ void PPU::writeSprites(){
     }
 }
 
-void PPU::writeOAM(unsigned short address, unsigned char value){
-    OAM[address] = value;
+void PPU::writeOAM(unsigned char value){
+    OAM[regs[3]++] = value;
 }
 
 void PPU::vblank(){
@@ -228,13 +228,15 @@ void PPU::PPUSTATUS(){
     write_ppu_status = 0;
 }
 void PPU::OAMADDR(){
-    regs[3] = value;
+    if(is_read);
+    else regs[3] = value;
 }
 void PPU::OAMDATA(){
     if(is_read){
-        retVal = regs[4];
+        retVal = OAM[regs[3]];
     }else{
-        regs[4] = value;
+        writeOAM(value);
+        // regs[4] = value;
     }
 }
 void PPU::PPUSCROLL(){
