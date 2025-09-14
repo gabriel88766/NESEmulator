@@ -444,8 +444,7 @@ void CPU::PHA(){
     Push(A);
 }
 void CPU::PHP(){
-    setB();
-    Push(P);
+    Push(P | 0x30);
 }
 void CPU::PLA(){
     A = Pull();
@@ -453,7 +452,11 @@ void CPU::PLA(){
     checkZ(A);
 }
 void CPU::PLP(){
-    P = (Pull() & 0xCF) | (P & 0x30);
+    unsigned char val = Pull();
+    if((val & 0x4) != (val & 0x4)){
+        chI = true;
+    }
+    P = (val & 0xCB) | (P & 0x34);
 }
 void CPU::ROL(){
     unsigned char valueShifted, result;
@@ -642,8 +645,9 @@ void CPU::Addition(unsigned short Oper2){
 void CPU::Branch(){
     unsigned short oldPC = PC;
     PC = memory;
-    if((oldPC ^ PC) & 0xFF00) total_cycles++;
-    total_cycles++;
+    if((oldPC ^ PC) & 0xFF00) newCycle();
+    newCycle();
+    
 }
 void CPU::Compare(unsigned char reg){
     unsigned char memValue = bus->readAddress(memory);
@@ -673,6 +677,10 @@ void CPU::abs(){
     unsigned short low = bus->readAddress(PC++);
     unsigned short high = bus->readAddress(PC++);
     memory = low | (high << 8);
+    if(memory >= 0x4020 && memory < 0x6000){
+        memory = PC - 1;
+        bus->last_value = high;
+    }
 }
 void CPU::absX(){
     unsigned short low = bus->readAddress(PC++);
@@ -680,7 +688,7 @@ void CPU::absX(){
     memory = (high << 8) | low;
     if(((memory + X) & 0xFF00) != (memory & 0xFF00)){ //page cross
         if((opcode != 0x9D) && ((opcode & 0x0F) != 0x0E)){ 
-            total_cycles++;
+            newCycle();
         }
     } 
     memory += X;
@@ -691,7 +699,7 @@ void CPU::absY(){
     memory = (high << 8) | low;
     if(((memory + Y) & 0xFF00) != (memory & 0xFF00)){ //page cross
         if(opcode != 0x99){ 
-            total_cycles++;
+            newCycle();
         }
     } 
     memory += Y;
@@ -725,7 +733,7 @@ void CPU::indY(){
     memory = (high << 8) | low;
     if(((memory + Y) & 0xFF00) != (memory & 0xFF00)){ //page cross
         if(opcode != 0x91 ){
-            total_cycles++;
+            newCycle();
         }
     } 
     memory += Y;
@@ -828,23 +836,32 @@ void CPU::printState(unsigned short opc){
 }
 
 void CPU::nextInstruction(){
-    if(irq_pin){
+     if(irq_pin){
         if(!getI()){
             irq_pin = false;//interrupt handled
             irq();
         }
     }
+    if(chI){
+        if(getI()) clearI();
+        else setI();
+        chI = false;
+    }
     if(nmi_pin){
         nmi_pin = false;
         nmi();
     }
+    
+
+   
+    
+    
     unsigned short opc = PC;
     opcode = bus->readAddress(PC++);
     invoke(instructions[opcode].address_mode, *this);
     invoke(instructions[opcode].instruction, *this);
-    total_cycles += instructions[opcode].cycles;
-    for(int i=0;i<3*instructions[opcode].cycles;i++){
-        bus->movePPU();
+    for(int i=0;i<instructions[opcode].cycles;i++){
+        newCycle();
     }
     // printState(opc);
 }
@@ -866,6 +883,7 @@ void CPU::reset(){
 }
 
 void CPU::irq(){
+    for(int i=0;i<7;i++) newCycle();
     unsigned char low = PC;
     unsigned char high = PC >> 8;
     Push(high);
@@ -875,10 +893,11 @@ void CPU::irq(){
     setI();
     PC = bus->readAddress(0xFFFF) << 8;
     PC |= bus->readAddress(0xFFFE);
-    total_cycles += 7;
+    
 }
 
 void CPU::nmi(){
+    for(int i=0;i<7;i++) newCycle();
     unsigned char low = PC;
     unsigned char high = PC >> 8;
     Push(high);
@@ -888,7 +907,7 @@ void CPU::nmi(){
     setI();
     PC = bus->readAddress(0xFFFB) << 8;
     PC |= bus->readAddress(0xFFFA);
-    total_cycles += 7;
+    
 }
 
 void CPU::connectBus(Bus *bus){
@@ -899,10 +918,15 @@ void invoke(void (CPU::*function)(), CPU &obj) {
     (obj.*function)();
 }
 
-void CPU::setirq(){
-    irq_pin = true;
+void CPU::setirq(bool value){
+    irq_pin = value;
 }
 
 void CPU::setnmi(){
     nmi_pin = true;
+}
+
+void CPU::newCycle(){
+    total_cycles++;
+    for(int j=0;j<3;j++) bus->movePPU();
 }

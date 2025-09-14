@@ -24,9 +24,9 @@ void Bus::connectAPU(APU *apu){
 
 unsigned char Bus::readAddress(unsigned short address){
     if(address < 0x2000){
-        return memory[address & 0x7FF];
+        return last_value = memory[address & 0x7FF];
     }else if(address < 0x4000){
-        return ppu->readMemory(address);
+        return last_value = ppu->readMemory(address);
     }else if(address < 0x4020){
         //apu
         if(address == 0x4016){
@@ -42,6 +42,8 @@ unsigned char Bus::readAddress(unsigned short address){
             }
             return result;
         }else return apu->readMemory(address & 0x1F);
+    }else if(address < 0x6000){
+        return last_value;
     }else{
         //cartridge area
         if(address >= 0x6000){
@@ -58,13 +60,15 @@ void Bus::writeAddress(unsigned short address, unsigned char value){
         ppu->writeMemory(address, value);
     }else if(address < 0x4020){
         if(address == 0x4014){
-            cpu->total_cycles += 513;
+            
             unsigned short begin = value;
             begin <<= 8;
             for(unsigned short j = 0; j < 0x100; j++){
                 ppu->writeOAM(memory[begin + j]);
+                cpu->total_cycles += 2;
                 for(int u=0;u<6;u++) movePPU();
             }
+            cpu->total_cycles += 1;
             for(int u=0;u<3;u++) movePPU();
         }else if(address == 0x4016){
             strobe = value & 1;
@@ -73,13 +77,13 @@ void Bus::writeAddress(unsigned short address, unsigned char value){
                 regbut2 = button2;
             }
         }else apu->writeMemory(address & 0x1F, value);
-    }else{
+    }else if(address >= 0x6000){
         cartridge->writeMemory(address, value);
     }
 }
 
-void Bus::setIRQ(){
-    cpu->setirq();
+void Bus::setIRQ(bool value){
+    cpu->setirq(value);
 }
 
 void Bus::setNMI(){

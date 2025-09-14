@@ -16,7 +16,6 @@ class PPU{
 private:
     Bus *bus;
     Color colors[4];
-    unsigned char tile[8][8];
     unsigned char regs[10]; 
     unsigned char VRAM[0x4000]; //not accurate, however it will ease the program
     unsigned char OAM[0x100];
@@ -24,12 +23,15 @@ private:
     bool opaque[512][480];
     bool isopaque[256][240];
     int frameCount = 0;
-    bool is_read;
-    unsigned char value;
-    unsigned char retVal;
-    unsigned char buffer;
-    int write_ppu_status;
+    bool is_read = false;
+    unsigned char value = 0;
+    unsigned char retVal = 0;
+    unsigned char buffer = 0;
+    int write_ppu_status = 0;
+    int xx = 0, yy = 0;
+    int colx = -1, coly = -1;
 public:
+    bool okVblank = false;
     bool horizontal; //set by cartridge
     Color framebuffer[256][240];
     PPU();
@@ -42,8 +44,7 @@ public:
     void writeTiles();
     void writeSprites();
     void writeOAM(unsigned char value);
-    void setVblank();
-    void clearVblank();
+    
     //regs functions
     void PPUCTRL(); //reg 0
     void PPUMASK(); //reg 1
@@ -53,6 +54,10 @@ public:
     void PPUSCROLL(); //reg 5 6
     void PPUADDR(); //reg 7 8
     void PPUDATA(); //reg 9
+
+    //timing
+    void setVblank();
+    void clearVblank();
     void move();
 };
 // (obj.*function)();

@@ -15,6 +15,7 @@ private:
     Bus *bus;
     bool irq_pin = false;
     bool nmi_pin = false;
+    bool chI = false;
 public:
     CPU(){
         this->powerON();
@@ -147,8 +148,9 @@ public:
     void irq();
     void nmi();
     void connectBus(Bus *bus);
-    void setirq();
+    void setirq(bool value);
     void setnmi();
+    void newCycle();
 };
 
 struct Instruction{

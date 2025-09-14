@@ -30,45 +30,7 @@ void audio_callback(void* userdata, Uint8* stream, int length) {
     //     cout << "wait..\n";
     // }
     apu.getSampling((Sint16*) stream, length / sizeof(Sint16), sampleRate);
-    // return;
-
-    // Sint16* samples = (Sint16*) stream;
-	// int sample_count = length / sizeof(Sint16);
-    
-    
-    // double twoPi = 2.0 * M_PI;
-	// for (int i = 0; i < sample_count; ++i){
-    //     // double tri = 2.0 * fabs(2.0 * (phase / twoPi - floor(phase / twoPi + 0.5))) - 1.0;
-	// 	// samples[i] = sin(phase) * 32767;
-    //     samples[i] = 0;
-
-    //     // if (phase >= twoPi)
-    //         // phase -= twoPi;
-	// }
 }
-
-//trying to make a square note
-// void audio_callback2(void* userdata, Uint8* stream, int length) {
-//     Sint16* samples = (Sint16*) stream;
-// 	int sample_count = length / sizeof(Sint16);
-//     double sampleRate = 44100.0;
-//     double twoPi = 2.0 * M_PI;
-//     double freq = 330;
-//     double phaseIncrement = (twoPi * freq) / sampleRate;
-//     double duty = 0.5;
-// 	for (int i = 0; i < sample_count; ++i){
-//         double tri = 2.0 * fabs(2.0 * (phase / twoPi - floor(phase / twoPi + 0.5))) - 1.0;
-//         if(phase >= twoPi * duty) samples[i] = 0;
-//         else samples[i] = -0;
-        
-//         // samples[i] = sin(phase) * 32767;
-//         // samples[i] = 0;
-
-//         phase += phaseIncrement;
-//         if (phase >= twoPi)
-//             phase -= twoPi;
-// 	}
-// }
 
 int main(int argc, char** args){
     // freopen("testROM/logs", "w", stdout); //for debug
@@ -117,15 +79,19 @@ int main(int argc, char** args){
     // cartridge.read("testROM/Magmax.nes"); 
     // cartridge.read("testROM/RoadFighter.nes"); 
     // cartridge.read("testROM/Super_Mario_Bros.nes");
+    // cartridge.read("testROM/SMB3.nes");
     // cartridge.read("testROM/FieldCombat.nes");
     // cartridge.read("testROM/SonSon.nes");
+    // cartridge.read("testROM/BumpnJump.nes");
     // cartridge.read("testROM/DigDug.nes");
     cartridge.read("testROM/AccuracyCoin.nes");
     // cartridge.read("testROM/Balloon_fight.nes");
     // cartridge.read("testROM/nestest.nes");
         // cartridge.read("testROM/Tennis.nes");
     // cartridge.read("testROM/LodeRunner.nes");
-    // cartridge.read("testROM/blargg/sprite_hit_tests/01.basics.nes");
+    // cartridge.read("testROM/BumpnJump.nes");
+    // cartridge.read("testROM/blargg/sprite_hit_tests/06.right_edge.nes");
+    // cartridge.read("testROM/blargg/cpu_timing_test.nes");
     cpu.powerON();
 
 
@@ -135,11 +101,6 @@ int main(int argc, char** args){
     cpu.reset();
     int up = 1;
     while (running) {
-        // if(up) freq += 20;
-        // else freq -= 20;
-        // if(freq >= 2400) up = 0;
-        // else if(freq <= 600) up = 1;
-
         Uint64 start = SDL_GetPerformanceCounter();
         SDL_Event e;
         // Do event loop
@@ -179,24 +140,14 @@ int main(int argc, char** args){
         bus.button2 = 0xFF;
         // Do physics loop
         wait = true;
-        while(cpu.total_cycles < nvb){
+        while(!ppu.okVblank){
             cpu.nextInstruction();
             if(cpu.total_cycles >= ntk){
                 apu.tick();
                 ntk += clock_apu;
             }
         }
-        ppu.setVblank();
-        nvb += clock_frame - clock_vblank;
-        while(cpu.total_cycles < nvb){
-            cpu.nextInstruction();
-            if(cpu.total_cycles >= ntk){
-                apu.tick();
-                ntk += clock_apu;
-            }
-        }
-        ppu.clearVblank();
-        nvb += clock_vblank; //for the next cycle of rendering
+        ppu.okVblank = false;
         wait = false;
         // Do rendering loop
         for (int y = 0; y < 240; ++y) {

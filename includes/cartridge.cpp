@@ -50,10 +50,20 @@ void Cartridge::read(const char *filename){
                     for(int j=0;j<0x2000;j++){
                         chr_rom[j] = chr_banks[j];
                     }
-                }else ram = true;
-        
-        
-        
+                }else{
+                    ram = true;
+                    for(int j=0;j<0x2000;j++) chr_rom[j] = 0;
+                }
+            case 3:
+                if(header[4] == 2){
+                    for(int j=0;j<0x8000;j++){
+                        prg_rom[j] = prg_banks[j];
+                    }
+                }
+                //bank 00 default
+                for(int j=0;j<0x2000;j++){
+                    chr_rom[j] = chr_banks[j];
+                }
         }
         
         
@@ -86,6 +96,15 @@ void Cartridge::writeMemory(unsigned short address, unsigned char value){
         //bankswitch?
         switch(mapper){
             //TODO
+            case 3:
+                int val;
+                if(header[5] <= 4) val = value & 3;
+                else if(header[5] <= 8) val = value & 7;
+                else val = value & 0xF;
+                printf("%d\n", val);
+                for(int j=0;j<0x2000;j++){
+                    chr_rom[j] = chr_banks[j + val*0x2000];
+                }
         }
     }
 }

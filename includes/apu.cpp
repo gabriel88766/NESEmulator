@@ -8,6 +8,7 @@ APU::APU(){
 void APU::reset(){
     for(int i=0;i<0x20;i++) reg[i] = 0;
     tc = 0;
+    len2[0] = len2[1] = len2[3] = 0xFF;
     for(int i=0;i<5;i++){
         en[i] = true;
         if(i < 3) phase[i] = 0;
@@ -26,10 +27,14 @@ unsigned char APU::readMemory(unsigned short address){
     if(address == 0x4015){
         unsigned char ans = 0;
         for(int j=0;j<=4;j++){
-            if(en[j] && len[j]) ans |= (1 << j);
+            if(en[j] && len[j] && len2[j]) ans |= (1 << j);
         }
-        if(!(reg[0x17] & 0x40)) ans |= (1 << 6);
+        if(F){
+             ans |= (1 << 6);
+             bus->setIRQ(false);
+        }
         if(I) ans |= (1 << 7);
+
         return ans;
     }else return 0;//should not happen
 }   
@@ -49,6 +54,9 @@ void APU::writeMemory(unsigned short address, unsigned char value){
         len[address >> 2] = len_table[value >> 3];
         if(address == 3 || address == 7) phase[address >> 2] = 0;
     }
+    if(address & 0x8){
+        len2[2] = value & 0x7F;
+    }
 }
 
 void APU::tick(){
@@ -61,12 +69,14 @@ void APU::tick(){
         }
         if(tc != 4){
             //Envelope and linear counter
+            linearCounter();
         }
 
 
         if(tc == 5) tc = 0;
     }else{
         //Envelope and linear counter
+        linearCounter();
         if(tc == 2 || tc == 4){
             //Length counter and sweep
             sweep();
@@ -74,15 +84,20 @@ void APU::tick(){
         }
         if(tc == 4){
             //interruption
-            
             if(!(reg[0x17] & 0x40)){
-                bus->setIRQ();
+                bus->setIRQ(true);
+                F = true;
             }
             tc = 0;
         }
     }
 }
 
+void APU::linearCounter(){
+    if(en[2] && (!(reg[8] & 0x80))){
+        if(len2[2] != 0) len2[2]--;
+    }
+}
 
 void APU::sweep(){
 
@@ -115,6 +130,7 @@ void APU::getSampling(short *buffer, int length, double rate){
     for(int i=0;i<3;i++){
         if(!en[i]) continue;
         if(!len[i]) continue;
+        // if(!len2[i]) continue;
         int v = reg[4*i] & 0xF;
         if(i <= 1 && v == 0) continue; //only pulse have volume
         int t = ((reg[4*i+3] & 7) << 8) + reg[4*i+2];

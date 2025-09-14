@@ -89,7 +89,13 @@ Color color_pallete_1[] = {
 PPU::PPU(){
     memset(VRAM, 0, sizeof(VRAM));
     memset(OAM, 0, sizeof(OAM));
-    regs[2] = 0xA0;
+    memset(isopaque, 0, sizeof(isopaque));
+    memset(opaque, 0, sizeof(opaque));
+    memset(nametables, 0, sizeof(nametables));
+    memset(regs, 0, sizeof(regs));
+    memset(framebuffer, 0, sizeof(framebuffer));
+    // regs[2] = 0xA0;
+    colx = coly = -1;
 }
 
 void PPU::connectBus(Bus *bus){
@@ -188,14 +194,33 @@ void PPU::printFrame(){
     if(regs[1] & 0x10) writeSprites();
 }
 
-void PPU::writeTiles(){ //Write some tile in the image file, fetch color from 
+void PPU::writeTiles(){ //Write some tile in the image file, fetch color from
+    //testing ...
+    // int ax = 0, ay = 0; 
+    // unsigned short address = regs[7];
+    // address <<= 8;
+    // address |= regs[8];
+    // address &= 0x3FFF;
+    // ax = address % 32;
+    // ay = (address >> 5) % 32;
     int rx, ry;
     for(int x=0;x<256;x++){
         for(int y=0;y<240;y++){
+            if(x < 8 && (!(regs[1] & 0x2))){
+                isopaque[x][y] = false;
+                framebuffer[x][y] = color_pallete_1[VRAM[0x3F00]];
+                continue;
+            }
             rx = regs[5] + x;
             ry = regs[6] + y;
-            if((regs[0] & 1)) rx ^= 256;
-            if((regs[0] & 2) && ry >= 240) ry -= 240;
+            if((regs[0] & 1)) {
+                if(rx >= 256) rx -= 256;
+                else rx += 256;
+            }
+            if((regs[0] & 2)){
+                if(ry >= 240) ry -= 240;
+                else ry += 240;
+            }
             isopaque[x][y] = opaque[rx][ry];
             if(!isopaque[x][y]) framebuffer[x][y] = color_pallete_1[VRAM[0x3F00]];
             else framebuffer[x][y] = color_pallete_1[VRAM[nametables[rx][ry]]];
@@ -204,6 +229,7 @@ void PPU::writeTiles(){ //Write some tile in the image file, fetch color from
 }
 
 void PPU::writeSprites(){
+    colx = -1, coly = -1;
     bool mode = regs[0] & 0x20 ? true : false;//true means 8x16, false means 8x8
     unsigned short table = (regs[0] & 8)  && (!mode) ? 0x1000 : 0; 
     for(int i=63;i>=0;i--){
@@ -242,15 +268,19 @@ void PPU::writeSprites(){
                 int rx = flipx ? x + 7 - k : x + k;
                 int ry = ysz == 8 ? (flipy ? y + 7 - j: y + j) : (flipy ? y + 15 - j : y + j);
                 if(rx >= 256 || ry >= 240 || curColor == 0) continue;
+                if(rx < 8 && (!(regs[1] & 4))){
+                    continue;
+                }
+
+
                 if(hidden){
                     if(!isopaque[rx][ry]) framebuffer[rx][ry] = colors[curColor];
                 }else{
                     framebuffer[rx][ry] = colors[curColor];
                 }
-                if(i == 0 && curColor != 0 && isopaque[rx][ry] && rx != 255 ){
-                     regs[2] |= 0x40;
-                    //  printf("Im here\n");
-                    //  fflush(stdout);
+                if(i == 0 && curColor != 0 && isopaque[rx][ry] && rx != 255 && ry != 239){
+                     colx = rx;
+                     coly = ry;
                 }
             }
         }
@@ -262,22 +292,10 @@ void PPU::writeOAM(unsigned char value){
     OAM[regs[3]++] = value;
 }
 
-void PPU::setVblank(){
-    printFrame();
-    if(regs[0] & 0x80){
-        bus->setNMI();
-    }
-    regs[2] |= 0x80;
-}
-
-void PPU::clearVblank(){
-    regs[2] &= ~0x40;
-    regs[2] &= ~0x80;
-}
-
 
 //regs functions
 void PPU::PPUCTRL(){
+    if(((regs[0] & 0x80) == 0) && (value & 0x80) && (regs[2] & 0x80)) bus->setNMI();
     if(bus->getCycles() >= 29658) regs[0] = value;
 }
 void PPU::PPUMASK(){
@@ -323,25 +341,28 @@ void PPU::PPUDATA(){
     if(is_read){
         retVal = buffer;
         if(address < 0x2000){
-            //not used yet.
+            buffer = bus->readAddress(0x6000 + address);
         }else if(address < 0x3000){
             buffer = VRAM[address];
         }else if(address < 0x3F00){
             buffer = VRAM[address & 0x2FFF]; //mirror
         }else{
-            if(!(address & 3)) retVal = buffer = VRAM[address & 0x3F0F];
-            else retVal = buffer = VRAM[address & 0x3F1F];
+            buffer = VRAM[address & 0x2FFF];
+            retVal = VRAM[address & 0x3F1F];
+            // if(!(address & 3)) retVal = buffer = VRAM[address & 0x3F0F];
+            // else retVal = buffer = VRAM[address & 0x3F1F];
         }
     }else{
         if(address < 0x2000){
+            bus->writeAddress(0x6000 + address, value);
             //not used yet.
         }else if(address < 0x3000){
             VRAM[address] = value;
         }else if(address < 0x3F00){
             VRAM[address & 0x2FFF] = value;
         }else{
-            if(!(address & 3)) VRAM[address & 0x3F0F] = value;
-            else VRAM[address & 0x3F1F] = value;
+            if(!(address & 3)) VRAM[address & 0x3F0F] = value & 0x3F;
+            else VRAM[address & 0x3F1F] = value & 0x3F;
         }
     }
 
@@ -351,6 +372,43 @@ void PPU::PPUDATA(){
     regs[8] = nv; 
 }
 
+
+void PPU::setVblank(){
+    if(regs[0] & 0x80){
+        bus->setNMI();
+    }
+    regs[2] |= 0x80;
+}
+
+void PPU::clearVblank(){
+    regs[2] &= ~0x20;
+    regs[2] &= ~0x40;
+    regs[2] &= ~0x80;
+}
+
 void PPU::move(){
+    ++xx;
+    if(xx == 341){
+        xx = 0;
+        yy++;
+    }
+    if(yy == 262){
+        yy = 0;
+    }
+
+    if(xx == 0 && yy == 0){
+        printFrame();
+    }
+    
+    if(xx == colx && yy == coly){
+        regs[2] |= 0x40;
+    }
+    if(yy == 241 && xx == 1){
+        setVblank();
+    }
+    if(yy == 261 && xx == 1){
+        clearVblank();
+        okVblank = true;
+    }
     
 }
