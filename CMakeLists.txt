@@ -29,8 +29,10 @@ add_subdirectory(vendored/SDL EXCLUDE_FROM_ALL)
 # Build our hello executable
 add_executable(emuNES ${SOURCES} ${HEADERS})
 
+
+
 # Link to SDL2
-target_link_libraries(emuNES PRIVATE SDL2::SDL2)
+target_link_libraries(emuNES PRIVATE SDL2::SDL2main SDL2::SDL2 )
 
 # Set C++ standard
 target_compile_features(emuNES PRIVATE cxx_std_17)

@@ -30,12 +30,18 @@ unsigned char Bus::readAddress(unsigned short address){
     }else if(address < 0x4020){
         //apu
         if(address == 0x4016){
-            unsigned char result = (regbut & 1) ? 0 : 1;  // active low
+            unsigned char result = (regbut1 & 1) ? 0 : 1;  // active low
             if (!strobe) {
-                regbut >>= 1;
+                regbut1 >>= 1;
             }
             return result;
-        }else apu->readMemory(address & 0x1F);
+        }else if(address == 0x4017){
+            unsigned char result = (regbut2 & 1) ? 0 : 1;  // active low
+            if (!strobe) {
+                regbut2 >>= 1;
+            }
+            return result;
+        }else return apu->readMemory(address & 0x1F);
     }else{
         //cartridge area
         if(address >= 0x6000){
@@ -52,24 +58,28 @@ void Bus::writeAddress(unsigned short address, unsigned char value){
         ppu->writeMemory(address, value);
     }else if(address < 0x4020){
         if(address == 0x4014){
-            //special
             cpu->total_cycles += 513;
             unsigned short begin = value;
             begin <<= 8;
             for(unsigned short j = 0; j < 0x100; j++){
                 ppu->writeOAM(memory[begin + j]);
-                // ppu->writeOAM(j, memory[begin + j]);
+                for(int u=0;u<6;u++) movePPU();
             }
+            for(int u=0;u<3;u++) movePPU();
         }else if(address == 0x4016){
             strobe = value & 1;
             if (strobe) {
-                regbut = buttons;
+                regbut1 = button1;
+                regbut2 = button2;
             }
-            
         }else apu->writeMemory(address & 0x1F, value);
     }else{
-
+        cartridge->writeMemory(address, value);
     }
+}
+
+void Bus::setIRQ(){
+    cpu->setirq();
 }
 
 void Bus::setNMI(){
@@ -80,10 +90,10 @@ long long Bus::getCycles(){
     return cpu->total_cycles;
 }
 
-void Bus::dumpStack(){
-    for(int i=0x100;i<=0x1FF;i++){
-        printf("0x%02X ", memory[i]);
-    }
-    printf("\n");
-    fflush(stdout);
+void Bus::setPPUHorizontal(bool value){
+    ppu->horizontal = value;
+}
+
+void Bus::movePPU(){
+    ppu->move();
 }

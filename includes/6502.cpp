@@ -6,259 +6,259 @@ Instruction instructions[256] = {
     {7, &CPU::BRK, &CPU::impl}, //0x00
     {6, &CPU::ORA, &CPU::indX}, //0x01
     {2, &CPU::Illegal, &CPU::impl}, //0x02
-    {2, &CPU::Illegal, &CPU::impl}, //0x03
-    {2, &CPU::Illegal, &CPU::impl}, //0x04
+    {8, &CPU::SLO, &CPU::indX}, //0x03
+    {3, &CPU::NOP, &CPU::zpg}, //0x04
     {3, &CPU::ORA, &CPU::zpg}, //0x05
     {5, &CPU::ASL, &CPU::zpg}, //0x06
-    {2, &CPU::Illegal, &CPU::impl}, //0x07
+    {5, &CPU::SLO, &CPU::zpg}, //0x07
     {3, &CPU::PHP, &CPU::impl}, //0x08
     {2, &CPU::ORA, &CPU::imm}, //0x09
     {2, &CPU::ASL, &CPU::acc}, //0x0A
-    {2, &CPU::Illegal, &CPU::impl}, //0x0B
-    {2, &CPU::Illegal, &CPU::impl}, //0x0C
+    {2, &CPU::ANC, &CPU::imm}, //0x0B
+    {4, &CPU::NOP, &CPU::abs}, //0x0C
     {4, &CPU::ORA, &CPU::abs}, //0x0D
     {6, &CPU::ASL, &CPU::abs}, //0x0E
-    {2, &CPU::Illegal, &CPU::impl}, //0x0F
+    {6, &CPU::SLO, &CPU::abs}, //0x0F
     {2, &CPU::BPL, &CPU::rel}, //0x10
     {5, &CPU::ORA, &CPU::indY}, //0x11
     {2, &CPU::Illegal, &CPU::impl}, //0x12
-    {2, &CPU::Illegal, &CPU::impl}, //0x13
-    {2, &CPU::Illegal, &CPU::impl}, //0x14
+    {8, &CPU::SLO, &CPU::indY}, //0x13
+    {4, &CPU::NOP, &CPU::zpgX}, //0x14
     {4, &CPU::ORA, &CPU::zpgX}, //0x15
     {6, &CPU::ASL, &CPU::zpgX}, //0x16
-    {2, &CPU::Illegal, &CPU::impl}, //0x17
+    {6, &CPU::SLO, &CPU::zpgX}, //0x17
     {2, &CPU::CLC, &CPU::impl}, //0x18
     {4, &CPU::ORA, &CPU::absY}, //0x19
-    {2, &CPU::Illegal, &CPU::impl}, //0x1A
-    {2, &CPU::Illegal, &CPU::impl}, //0x1B
-    {2, &CPU::Illegal, &CPU::impl}, //0x1C
+    {2, &CPU::NOP, &CPU::impl}, //0x1A
+    {7, &CPU::SLO, &CPU::absY}, //0x1B
+    {4, &CPU::NOP, &CPU::absX}, //0x1C
     {4, &CPU::ORA, &CPU::absX}, //0x1D
     {7, &CPU::ASL, &CPU::absX}, //0x1E
-    {2, &CPU::Illegal, &CPU::impl}, //0x1F
+    {7, &CPU::SLO, &CPU::absX}, //0x1F
     {6, &CPU::JSR, &CPU::abs}, //0x20
     {6, &CPU::AND, &CPU::indX}, //0x21
     {2, &CPU::Illegal, &CPU::impl}, //0x22
-    {2, &CPU::Illegal, &CPU::impl}, //0x23
+    {8, &CPU::RLA, &CPU::indX}, //0x23
     {3, &CPU::BIT, &CPU::zpg}, //0x24
     {3, &CPU::AND, &CPU::zpg}, //0x25
     {5, &CPU::ROL, &CPU::zpg}, //0x26
-    {2, &CPU::Illegal, &CPU::impl}, //0x27
+    {5, &CPU::RLA, &CPU::zpg}, //0x27
     {4, &CPU::PLP, &CPU::impl}, //0x28
     {2, &CPU::AND, &CPU::imm}, //0x29
     {2, &CPU::ROL, &CPU::acc}, //0x2A
-    {2, &CPU::Illegal, &CPU::impl}, //0x2B
+    {2, &CPU::ANC, &CPU::imm}, //0x2B
     {4, &CPU::BIT, &CPU::abs}, //0x2C
     {4, &CPU::AND, &CPU::abs}, //0x2D
     {6, &CPU::ROL, &CPU::abs}, //0x2E
-    {2, &CPU::Illegal, &CPU::impl}, //0x2F
+    {6, &CPU::RLA, &CPU::abs}, //0x2F
     {2, &CPU::BMI, &CPU::rel}, //0x30
     {5, &CPU::AND, &CPU::indY}, //0x31
     {2, &CPU::Illegal, &CPU::impl}, //0x32
-    {2, &CPU::Illegal, &CPU::impl}, //0x33
-    {2, &CPU::Illegal, &CPU::impl}, //0x34
+    {8, &CPU::RLA, &CPU::indY}, //0x33
+    {4, &CPU::NOP, &CPU::zpgX}, //0x34
     {4, &CPU::AND, &CPU::zpgX}, //0x35
     {6, &CPU::ROL, &CPU::zpgX}, //0x36
-    {2, &CPU::Illegal, &CPU::impl}, //0x37
+    {7, &CPU::RLA, &CPU::zpgX}, //0x37
     {2, &CPU::SEC, &CPU::impl}, //0x38
     {4, &CPU::AND, &CPU::absY}, //0x39
-    {2, &CPU::Illegal, &CPU::impl}, //0x3A
-    {2, &CPU::Illegal, &CPU::impl}, //0x3B
-    {2, &CPU::Illegal, &CPU::impl}, //0x3C
+    {2, &CPU::NOP, &CPU::impl}, //0x3A
+    {7, &CPU::RLA, &CPU::absY}, //0x3B
+    {4, &CPU::NOP, &CPU::absX}, //0x3C
     {4, &CPU::AND, &CPU::absX}, //0x3D
     {7, &CPU::ROL, &CPU::absX}, //0x3E
-    {2, &CPU::Illegal, &CPU::impl}, //0x3F
+    {7, &CPU::RLA, &CPU::absX}, //0x3F
     {6, &CPU::RTI, &CPU::impl}, //0x40
     {6, &CPU::EOR, &CPU::indX}, //0x41
     {2, &CPU::Illegal, &CPU::impl}, //0x42
-    {2, &CPU::Illegal, &CPU::impl}, //0x43
-    {2, &CPU::Illegal, &CPU::impl}, //0x44
+    {8, &CPU::SRE, &CPU::indX}, //0x43
+    {3, &CPU::NOP, &CPU::zpg}, //0x44
     {3, &CPU::EOR, &CPU::zpg}, //0x45
     {5, &CPU::LSR, &CPU::zpg}, //0x46
-    {2, &CPU::Illegal, &CPU::impl}, //0x47
+    {5, &CPU::SRE, &CPU::zpg}, //0x47
     {3, &CPU::PHA, &CPU::impl}, //0x48
     {2, &CPU::EOR, &CPU::imm}, //0x49
     {2, &CPU::LSR, &CPU::acc}, //0x4A
-    {2, &CPU::Illegal, &CPU::impl}, //0x4B
+    {2, &CPU::ALR, &CPU::imm}, //0x4B
     {3, &CPU::JMP, &CPU::abs}, //0x4C
     {4, &CPU::EOR, &CPU::abs}, //0x4D
     {6, &CPU::LSR, &CPU::abs}, //0x4E
-    {2, &CPU::Illegal, &CPU::impl}, //0x4F
+    {6, &CPU::SRE, &CPU::abs}, //0x4F
     {2, &CPU::BVC, &CPU::rel}, //0x50
     {5, &CPU::EOR, &CPU::indY}, //0x51
     {2, &CPU::Illegal, &CPU::impl}, //0x52
-    {2, &CPU::Illegal, &CPU::impl}, //0x53
-    {2, &CPU::Illegal, &CPU::impl}, //0x54
+    {8, &CPU::SRE, &CPU::indY}, //0x53
+    {4, &CPU::NOP, &CPU::zpgX}, //0x54
     {4, &CPU::EOR, &CPU::zpgX}, //0x55
     {6, &CPU::LSR, &CPU::zpgX}, //0x56
-    {2, &CPU::Illegal, &CPU::impl}, //0x57
+    {6, &CPU::SRE, &CPU::zpgX}, //0x57
     {2, &CPU::CLI, &CPU::impl}, //0x58
     {4, &CPU::EOR, &CPU::absY}, //0x59
-    {2, &CPU::Illegal, &CPU::impl}, //0x5A
-    {2, &CPU::Illegal, &CPU::impl}, //0x5B
-    {2, &CPU::Illegal, &CPU::impl}, //0x5C
+    {2, &CPU::NOP, &CPU::impl}, //0x5A
+    {7, &CPU::SRE, &CPU::absY}, //0x5B
+    {4, &CPU::NOP, &CPU::absX}, //0x5C
     {4, &CPU::EOR, &CPU::absX}, //0x5D
     {7, &CPU::LSR, &CPU::absX}, //0x5E
-    {2, &CPU::Illegal, &CPU::impl}, //0x5F
+    {7, &CPU::SRE, &CPU::absX}, //0x5F
     {6, &CPU::RTS, &CPU::impl}, //0x60
     {6, &CPU::ADC, &CPU::indX}, //0x61
     {2, &CPU::Illegal, &CPU::impl}, //0x62
-    {2, &CPU::Illegal, &CPU::impl}, //0x63
-    {2, &CPU::Illegal, &CPU::impl}, //0x64
+    {8, &CPU::RRA, &CPU::indX}, //0x63
+    {3, &CPU::NOP, &CPU::zpg}, //0x64
     {3, &CPU::ADC, &CPU::zpg}, //0x65
     {5, &CPU::ROR, &CPU::zpg}, //0x66
-    {2, &CPU::Illegal, &CPU::impl}, //0x67
+    {5, &CPU::RRA, &CPU::zpg}, //0x67
     {4, &CPU::PLA, &CPU::impl}, //0x68
     {2, &CPU::ADC, &CPU::imm}, //0x69
     {2, &CPU::ROR, &CPU::acc}, //0x6A
-    {2, &CPU::Illegal, &CPU::impl}, //0x6B
+    {2, &CPU::ARR, &CPU::imm}, //0x6B
     {5, &CPU::JMP, &CPU::ind}, //0x6C
     {4, &CPU::ADC, &CPU::abs}, //0x6D
     {6, &CPU::ROR, &CPU::abs}, //0x6E
-    {2, &CPU::Illegal, &CPU::impl}, //0x6F
+    {6, &CPU::RRA, &CPU::abs}, //0x6F
     {2, &CPU::BVS, &CPU::rel}, //0x70
     {5, &CPU::ADC, &CPU::indY}, //0x71
     {2, &CPU::Illegal, &CPU::impl}, //0x72
-    {2, &CPU::Illegal, &CPU::impl}, //0x73
-    {2, &CPU::Illegal, &CPU::impl}, //0x74
+    {8, &CPU::RRA, &CPU::indY}, //0x73
+    {4, &CPU::NOP, &CPU::zpgX}, //0x74
     {4, &CPU::ADC, &CPU::zpgX}, //0x75
     {6, &CPU::ROR, &CPU::zpgX}, //0x76
-    {2, &CPU::Illegal, &CPU::impl}, //0x77
+    {6, &CPU::RRA, &CPU::zpgX}, //0x77
     {2, &CPU::SEI, &CPU::impl}, //0x78
     {4, &CPU::ADC, &CPU::absY}, //0x79
-    {2, &CPU::Illegal, &CPU::impl}, //0x7A
-    {2, &CPU::Illegal, &CPU::impl}, //0x7B
-    {2, &CPU::Illegal, &CPU::impl}, //0x7C
+    {2, &CPU::NOP, &CPU::impl}, //0x7A
+    {7, &CPU::RRA, &CPU::absY}, //0x7B
+    {4, &CPU::NOP, &CPU::absX}, //0x7C
     {4, &CPU::ADC, &CPU::absX}, //0x7D
     {7, &CPU::ROR, &CPU::absX}, //0x7E
-    {2, &CPU::Illegal, &CPU::impl}, //0x7F
-    {2, &CPU::Illegal, &CPU::impl}, //0x80
+    {7, &CPU::RRA, &CPU::absX}, //0x7F
+    {2, &CPU::NOP, &CPU::imm}, //0x80
     {6, &CPU::STA, &CPU::indX}, //0x81
-    {2, &CPU::Illegal, &CPU::impl}, //0x82
-    {2, &CPU::Illegal, &CPU::impl}, //0x83
+    {2, &CPU::NOP, &CPU::imm}, //0x82
+    {6, &CPU::SAX, &CPU::indX}, //0x83
     {3, &CPU::STY, &CPU::zpg}, //0x84
     {3, &CPU::STA, &CPU::zpg}, //0x85
     {3, &CPU::STX, &CPU::zpg}, //0x86
-    {2, &CPU::Illegal, &CPU::impl}, //0x87
+    {3, &CPU::SAX, &CPU::zpg}, //0x87
     {2, &CPU::DEY, &CPU::impl}, //0x88
-    {2, &CPU::Illegal, &CPU::impl}, //0x89
+    {2, &CPU::NOP, &CPU::imm}, //0x89
     {2, &CPU::TXA, &CPU::impl}, //0x8A
-    {2, &CPU::Illegal, &CPU::impl}, //0x8B
+    {2, &CPU::XAA, &CPU::imm}, //0x8B
     {4, &CPU::STY, &CPU::abs}, //0x8C
     {4, &CPU::STA, &CPU::abs}, //0x8D
     {4, &CPU::STX, &CPU::abs}, //0x8E
-    {2, &CPU::Illegal, &CPU::impl}, //0x8F
+    {4, &CPU::SAX, &CPU::abs}, //0x8F
     {2, &CPU::BCC, &CPU::rel}, //0x90
     {6, &CPU::STA, &CPU::indY}, //0x91
     {2, &CPU::Illegal, &CPU::impl}, //0x92
-    {2, &CPU::Illegal, &CPU::impl}, //0x93
+    {6, &CPU::AHX, &CPU::indY}, //0x93
     {4, &CPU::STY, &CPU::zpgX}, //0x94
     {4, &CPU::STA, &CPU::zpgX}, //0x95
     {4, &CPU::STX, &CPU::zpgY}, //0x96
-    {2, &CPU::Illegal, &CPU::impl}, //0x97
+    {4, &CPU::SAX, &CPU::zpgY}, //0x97
     {2, &CPU::TYA, &CPU::impl}, //0x98
     {5, &CPU::STA, &CPU::absY}, //0x99
     {2, &CPU::TXS, &CPU::impl}, //0x9A
-    {2, &CPU::Illegal, &CPU::impl}, //0x9B
-    {2, &CPU::Illegal, &CPU::impl}, //0x9C
+    {5, &CPU::TAS, &CPU::absY}, //0x9B
+    {5, &CPU::SHY, &CPU::absX}, //0x9C
     {5, &CPU::STA, &CPU::absX}, //0x9D
-    {2, &CPU::Illegal, &CPU::impl}, //0x9E
-    {2, &CPU::Illegal, &CPU::impl}, //0x9F
+    {5, &CPU::SHX, &CPU::absY}, //0x9E
+    {5, &CPU::AHX, &CPU::absY}, //0x9F
     {2, &CPU::LDY, &CPU::imm}, //0xA0
     {6, &CPU::LDA, &CPU::indX}, //0xA1
     {2, &CPU::LDX, &CPU::imm}, //0xA2
-    {2, &CPU::Illegal, &CPU::impl}, //0xA3
+    {6, &CPU::LAX, &CPU::indX}, //0xA3
     {3, &CPU::LDY, &CPU::zpg}, //0xA4
     {3, &CPU::LDA, &CPU::zpg}, //0xA5
     {3, &CPU::LDX, &CPU::zpg}, //0xA6
-    {2, &CPU::Illegal, &CPU::impl}, //0xA7
+    {3, &CPU::LAX, &CPU::zpg}, //0xA7
     {2, &CPU::TAY, &CPU::impl}, //0xA8
     {2, &CPU::LDA, &CPU::imm}, //0xA9
     {2, &CPU::TAX, &CPU::impl}, //0xAA
-    {2, &CPU::Illegal, &CPU::impl}, //0xAB
+    {2, &CPU::LAX, &CPU::imm}, //0xAB
     {4, &CPU::LDY, &CPU::abs}, //0xAC
     {4, &CPU::LDA, &CPU::abs}, //0xAD
     {4, &CPU::LDX, &CPU::abs}, //0xAE
-    {2, &CPU::Illegal, &CPU::impl}, //0xAF
+    {4, &CPU::LAX, &CPU::abs}, //0xAF
     {2, &CPU::BCS, &CPU::rel}, //0xB0
     {5, &CPU::LDA, &CPU::indY}, //0xB1
     {2, &CPU::Illegal, &CPU::impl}, //0xB2
-    {2, &CPU::Illegal, &CPU::impl}, //0xB3
+    {5, &CPU::LAX, &CPU::indY}, //0xB3
     {4, &CPU::LDY, &CPU::zpgX}, //0xB4
     {4, &CPU::LDA, &CPU::zpgX}, //0xB5
     {4, &CPU::LDX, &CPU::zpgY}, //0xB6
-    {2, &CPU::Illegal, &CPU::impl}, //0xB7
+    {4, &CPU::LAX, &CPU::zpgY}, //0xB7
     {2, &CPU::CLV, &CPU::impl}, //0xB8
     {4, &CPU::LDA, &CPU::absY}, //0xB9
     {2, &CPU::TSX, &CPU::impl}, //0xBA
-    {2, &CPU::Illegal, &CPU::impl}, //0xBB
+    {4, &CPU::LAS, &CPU::absY}, //0xBB
     {4, &CPU::LDY, &CPU::absX}, //0xBC
     {4, &CPU::LDA, &CPU::absX}, //0xBD
     {4, &CPU::LDX, &CPU::absY}, //0xBE
-    {2, &CPU::Illegal, &CPU::impl}, //0xBF
+    {4, &CPU::LAX, &CPU::absY}, //0xBF
     {2, &CPU::CPY, &CPU::imm}, //0xC0
     {6, &CPU::CMP, &CPU::indX}, //0xC1
-    {2, &CPU::Illegal, &CPU::impl}, //0xC2
-    {2, &CPU::Illegal, &CPU::impl}, //0xC3
+    {2, &CPU::NOP, &CPU::imm}, //0xC2
+    {8, &CPU::DCP, &CPU::indX}, //0xC3
     {3, &CPU::CPY, &CPU::zpg}, //0xC4
     {3, &CPU::CMP, &CPU::zpg}, //0xC5
     {5, &CPU::DEC, &CPU::zpg}, //0xC6
-    {2, &CPU::Illegal, &CPU::impl}, //0xC7
+    {5, &CPU::DCP, &CPU::zpg}, //0xC7
     {2, &CPU::INY, &CPU::impl}, //0xC8
     {2, &CPU::CMP, &CPU::imm}, //0xC9
     {2, &CPU::DEX, &CPU::impl}, //0xCA
-    {2, &CPU::Illegal, &CPU::impl}, //0xCB
+    {2, &CPU::AXS, &CPU::imm}, //0xCB
     {4, &CPU::CPY, &CPU::abs}, //0xCC
     {4, &CPU::CMP, &CPU::abs}, //0xCD
     {6, &CPU::DEC, &CPU::abs}, //0xCE
-    {2, &CPU::Illegal, &CPU::impl}, //0xCF
+    {6, &CPU::DCP, &CPU::abs}, //0xCF
     {2, &CPU::BNE, &CPU::rel}, //0xD0
     {5, &CPU::CMP, &CPU::indY}, //0xD1
     {2, &CPU::Illegal, &CPU::impl}, //0xD2
-    {2, &CPU::Illegal, &CPU::impl}, //0xD3
-    {2, &CPU::Illegal, &CPU::impl}, //0xD4
+    {8, &CPU::DCP, &CPU::indY}, //0xD3
+    {4, &CPU::NOP, &CPU::zpgX}, //0xD4
     {4, &CPU::CMP, &CPU::zpgX}, //0xD5
     {6, &CPU::DEC, &CPU::zpgX}, //0xD6
-    {2, &CPU::Illegal, &CPU::impl}, //0xD7
+    {6, &CPU::DCP, &CPU::zpgX}, //0xD7
     {2, &CPU::CLD, &CPU::impl}, //0xD8
     {4, &CPU::CMP, &CPU::absY}, //0xD9
-    {2, &CPU::Illegal, &CPU::impl}, //0xDA
-    {2, &CPU::Illegal, &CPU::impl}, //0xDB
-    {2, &CPU::Illegal, &CPU::impl}, //0xDC
+    {2, &CPU::NOP, &CPU::impl}, //0xDA
+    {7, &CPU::DCP, &CPU::absY}, //0xDB
+    {4, &CPU::NOP, &CPU::absX}, //0xDC
     {4, &CPU::CMP, &CPU::absX}, //0xDD
     {7, &CPU::DEC, &CPU::absX}, //0xDE
-    {2, &CPU::Illegal, &CPU::impl}, //0xDF
+    {7, &CPU::DCP, &CPU::absX}, //0xDF
     {2, &CPU::CPX, &CPU::imm}, //0xE0
     {6, &CPU::SBC, &CPU::indX}, //0xE1
-    {2, &CPU::Illegal, &CPU::impl}, //0xE2
-    {2, &CPU::Illegal, &CPU::impl}, //0xE3
+    {2, &CPU::NOP, &CPU::imm}, //0xE2
+    {8, &CPU::ISC, &CPU::indX}, //0xE3
     {3, &CPU::CPX, &CPU::zpg}, //0xE4
     {3, &CPU::SBC, &CPU::zpg}, //0xE5
     {5, &CPU::INC, &CPU::zpg}, //0xE6
-    {2, &CPU::Illegal, &CPU::impl}, //0xE7
+    {6, &CPU::ISC, &CPU::zpg}, //0xE7
     {2, &CPU::INX, &CPU::impl}, //0xE8
     {2, &CPU::SBC, &CPU::imm}, //0xE9
     {2, &CPU::NOP, &CPU::impl}, //0xEA
-    {2, &CPU::Illegal, &CPU::impl}, //0xEB
+    {2, &CPU::SBC, &CPU::imm}, //0xEB
     {4, &CPU::CPX, &CPU::abs}, //0xEC
     {4, &CPU::SBC, &CPU::abs}, //0xED
     {6, &CPU::INC, &CPU::abs}, //0xEE
-    {2, &CPU::Illegal, &CPU::impl}, //0xEF
+    {6, &CPU::ISC, &CPU::abs}, //0xEF
     {2, &CPU::BEQ, &CPU::rel}, //0xF0
     {5, &CPU::SBC, &CPU::indY}, //0xF1
     {2, &CPU::Illegal, &CPU::impl}, //0xF2
-    {2, &CPU::Illegal, &CPU::impl}, //0xF3
-    {2, &CPU::Illegal, &CPU::impl}, //0xF4
+    {8, &CPU::ISC, &CPU::indY}, //0xF3
+    {4, &CPU::NOP, &CPU::zpgX}, //0xF4
     {4, &CPU::SBC, &CPU::zpgX}, //0xF5
     {6, &CPU::INC, &CPU::zpgX}, //0xF6
-    {2, &CPU::Illegal, &CPU::impl}, //0xF7
+    {6, &CPU::ISC, &CPU::zpgX}, //0xF7
     {2, &CPU::SED, &CPU::impl}, //0xF8
     {4, &CPU::SBC, &CPU::absY}, //0xF9
-    {2, &CPU::Illegal, &CPU::impl}, //0xFA
-    {2, &CPU::Illegal, &CPU::impl}, //0xFB
-    {2, &CPU::Illegal, &CPU::impl}, //0xFC
+    {2, &CPU::NOP, &CPU::impl}, //0xFA
+    {7, &CPU::ISC, &CPU::absY}, //0xFB
+    {4, &CPU::NOP, &CPU::absX}, //0xFC
     {4, &CPU::SBC, &CPU::absX}, //0xFD
     {7, &CPU::INC, &CPU::absX}, //0xFE
-    {2, &CPU::Illegal, &CPU::impl}  //0xFF 
+    {7, &CPU::ISC, &CPU::absX}  //0xFF 
 };
 
 //Instructions 265-618
@@ -444,7 +444,7 @@ void CPU::PHA(){
     Push(A);
 }
 void CPU::PHP(){
-    //setB();
+    setB();
     Push(P);
 }
 void CPU::PLA(){
@@ -553,42 +553,91 @@ void CPU::TYA(){
     checkZ(A);
     checkN(A);
 }
-void CPU::Addition(unsigned short Oper2){
-    if(getD()){
-        //Decimal mode is not used in NES, may have bugs.
-        //Probably run slowly than binary.
 
-        //SBC -- reverts binary case and convert to decimal case
-        if(instructions[opcode].instruction == &CPU::SBC){
-            Oper2 = ~Oper2; //revert
-            Oper2 =  (0x90 - (Oper2 & 0xF0)) + (0x9 - (Oper2 & 0xF));
-        }
-        unsigned short Oper1 = A;
-        unsigned char low = (Oper1 & 0xF) + (Oper2 & 0xF) + (getC() ? 1 : 0);
-        unsigned short result = 0;
-        if(low > 9){
-            low += 6;
-        }
-        result += (Oper1 & 0xF0) + (Oper2 & 0xF0) + low;
-        if(result > 0x99){
-            setC();
-            result -= 0xA0;
-        }else{
-            clearC();
-        } 
-        checkZ(result);
-        A = result;        
-    }else{
-        unsigned short Oper1 = A;
-        unsigned short result = Oper1 + Oper2 + (getC() ? 1 : 0);
-        A = (unsigned char)result;
-        A == 0 ? setZ() : clearZ();
-        A & 0x80 ? setN() : clearN();
-        result > 0xFF ? setC() : clearC();
-        //test overflow 1
-        (Oper1 ^ result ) & (Oper2 ^ result) & 0x80 ? setV() : clearV();
-    }
+//illegal opcodes:
+void CPU::AHX(){
+    // bus->writeAddress(memory, A & X & H);
+}
+void CPU::ALR(){
+    LSR();
+    AND();
+}
+void CPU::ANC(){
+    A = A & bus->readAddress(memory);
+    if(A & 0x80) setC();
+    else clearC();
+    checkN(A);
+    checkZ(A);
+}
+void CPU::ARR(){
+    AND();
+    ROR();
     
+}
+void CPU::AXS(){
+
+}
+void CPU::DCP(){
+    DEC();
+    CMP();
+}
+void CPU::ISC(){
+    INC();
+    SBC();
+}
+void CPU::LAS(){
+    A = X = S = bus->readAddress(memory) & S;
+    checkN(A);
+    checkZ(A);
+}
+void CPU::LAX(){
+    LDA();
+    LDX();
+}
+void CPU::RLA(){
+    ROL();
+    AND();
+}
+void CPU::RRA(){
+    ROR();
+    ADC();
+}
+void CPU::SAX(){
+    bus->writeAddress(memory, A & X);
+}
+void CPU::SHX(){
+
+}
+void CPU::SHY(){
+
+}
+void CPU::SLO(){
+    ASL();
+    ORA();
+}
+void CPU::SRE(){
+    LSR();
+    EOR();
+}
+void CPU::TAS(){
+    
+}
+void CPU::XAA(){
+    A = X & bus->readAddress(memory);
+    checkN(A);
+    checkZ(A);
+}
+
+
+void CPU::Addition(unsigned short Oper2){
+    unsigned short Oper1 = A;
+    unsigned short result = Oper1 + Oper2 + (getC() ? 1 : 0);
+    A = (unsigned char)result;
+    A == 0 ? setZ() : clearZ();
+    A & 0x80 ? setN() : clearN();
+    result > 0xFF ? setC() : clearC();
+    //test overflow 1
+    (Oper1 ^ result ) & (Oper2 ^ result) & 0x80 ? setV() : clearV();
 }
 void CPU::Branch(){
     unsigned short oldPC = PC;
@@ -612,7 +661,7 @@ void CPU::Push(unsigned char value){
     S--;
 }
 void CPU::Illegal(){
-    printf("Reached an Illegal OPCODE that is not defined.\n");
+    // printf(" Reached an Illegal OPCODE that is not defined.");
     // exit(1);
 }
 
@@ -794,6 +843,9 @@ void CPU::nextInstruction(){
     invoke(instructions[opcode].address_mode, *this);
     invoke(instructions[opcode].instruction, *this);
     total_cycles += instructions[opcode].cycles;
+    for(int i=0;i<3*instructions[opcode].cycles;i++){
+        bus->movePPU();
+    }
     // printState(opc);
 }
 

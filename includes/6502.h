@@ -77,6 +77,24 @@ public:
     void TXA();
     void TXS();
     void TYA();
+    void AHX();
+    void ALR();
+    void ANC();
+    void ARR();
+    void AXS();
+    void DCP();
+    void ISC();
+    void LAS();
+    void LAX();
+    void RLA();
+    void RRA();
+    void SAX();
+    void SHX();
+    void SHY();
+    void SLO();
+    void SRE();
+    void TAS();
+    void XAA();
     void Addition(unsigned short Oper2); //ADC and SBC
     void Branch();
     void Compare(unsigned char reg);

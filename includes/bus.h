@@ -20,9 +20,11 @@ private:
     unsigned char memory[0x800];
     int cb = 0;
     bool strobe;
-    unsigned char regbut;
+    unsigned char regbut1;
+    unsigned char regbut2;
 public:
-    unsigned char buttons;
+    unsigned char button1;
+    unsigned char button2;
     Bus(){}
     void connectCPU(CPU *cpu);
     void connectCartridge(Cartridge *cartridge);
@@ -30,9 +32,11 @@ public:
     void connectAPU(APU *apu);
     unsigned char readAddress(unsigned short address);
     void writeAddress(unsigned short address, unsigned char value);
+    void setIRQ();
     void setNMI();
     long long int getCycles();
-    void dumpStack();
+    void setPPUHorizontal(bool value);
+    void movePPU();
 };
 
 #endif
