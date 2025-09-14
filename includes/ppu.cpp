@@ -195,14 +195,11 @@ void PPU::printFrame(){
 }
 
 void PPU::writeTiles(){ //Write some tile in the image file, fetch color from
-    //testing ...
-    // int ax = 0, ay = 0; 
-    // unsigned short address = regs[7];
-    // address <<= 8;
-    // address |= regs[8];
-    // address &= 0x3FFF;
-    // ax = address % 32;
-    // ay = (address >> 5) % 32;
+    
+    int sx = ((treg & 0x1F) << 3) + (xreg & 7);
+    int sy = (((treg & 0x3E0) >> 5) << 3) + ((treg >> 12) & 7);
+    if(treg & 0x400) sx += 256;
+    if(treg & 0x800) sy += 240; 
     int rx, ry;
     for(int x=0;x<256;x++){
         for(int y=0;y<240;y++){
@@ -211,16 +208,11 @@ void PPU::writeTiles(){ //Write some tile in the image file, fetch color from
                 framebuffer[x][y] = color_pallete_1[VRAM[0x3F00]];
                 continue;
             }
-            rx = regs[5] + x;
-            ry = regs[6] + y;
-            if((regs[0] & 1)) {
-                if(rx >= 256) rx -= 256;
-                else rx += 256;
-            }
-            if((regs[0] & 2)){
-                if(ry >= 240) ry -= 240;
-                else ry += 240;
-            }
+            rx = sx + x;
+            ry = sy + y;
+            if(rx >= 512) rx -= 512;
+            if(ry >= 480) ry -= 480;
+
             isopaque[x][y] = opaque[rx][ry];
             if(!isopaque[x][y]) framebuffer[x][y] = color_pallete_1[VRAM[0x3F00]];
             else framebuffer[x][y] = color_pallete_1[VRAM[nametables[rx][ry]]];
@@ -295,16 +287,20 @@ void PPU::writeOAM(unsigned char value){
 
 //regs functions
 void PPU::PPUCTRL(){
-    if(((regs[0] & 0x80) == 0) && (value & 0x80) && (regs[2] & 0x80)) bus->setNMI();
-    if(bus->getCycles() >= 29658) regs[0] = value;
-}
+    if(bus->getCycles() >= 29658){
+        if(((regs[0] & 0x80) == 0) && (value & 0x80) && (regs[2] & 0x80)) bus->setNMI();
+        regs[0] = value;
+        treg &= 0x73FF;
+        treg |= ((value & 3) << 10) & 0xC00;
+    }
+}   
 void PPU::PPUMASK(){
     if(bus->getCycles() >= 29658) regs[1] = value;
 }
 void PPU::PPUSTATUS(){
     retVal = regs[2];
     regs[2] &= 0x7F;
-    write_ppu_status = 0;
+    wreg = 0;
 }
 void PPU::OAMADDR(){
     if(is_read);
@@ -320,16 +316,30 @@ void PPU::OAMDATA(){
 }
 void PPU::PPUSCROLL(){
     if(bus->getCycles() >= 29658){
-        if(write_ppu_status == 0) regs[5] = value; //xx
-        else regs[6] = value; //yy
-        write_ppu_status ^= 1;
+        if(wreg == 0){
+            treg &= 0x7FE0;
+            treg |= value >> 3;
+            xreg = value & 7;
+        }else{
+            treg &= 0xC1F;
+            treg |= (value & 7) << 12;
+            treg |= (value >> 3) << 5;
+        }
+        wreg ^= 1;
     }    
 }
 void PPU::PPUADDR(){//value *((unsigned short *)(regs+7));
     if(bus->getCycles() >= 29658){
-        if(write_ppu_status == 0) regs[7] = value; //high byte
-        else regs[8] = value; //low byte
-        write_ppu_status ^= 1;
+        if(wreg == 0){
+            regs[7] = value; //high byte
+            treg &= 0xFF;
+            treg |= (value << 8) & 0x3F00;
+        } else{
+            regs[8] = value; //low byte
+            treg &= 0x7F00;
+            treg |= value;
+        }
+        wreg ^= 1;
     }
 }
 void PPU::PPUDATA(){

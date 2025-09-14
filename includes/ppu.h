@@ -27,9 +27,11 @@ private:
     unsigned char value = 0;
     unsigned char retVal = 0;
     unsigned char buffer = 0;
-    int write_ppu_status = 0;
+    int wreg = 0;
     int xx = 0, yy = 0;
     int colx = -1, coly = -1;
+    unsigned short treg;
+    unsigned short xreg;
 public:
     bool okVblank = false;
     bool horizontal; //set by cartridge
