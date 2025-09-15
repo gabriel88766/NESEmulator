@@ -7,7 +7,7 @@ TODO: mappers and improve APU
 [3] Undestanding the behavior of the overflow flag. \
 [4] For APU, PPU, and some NES specific CPU behaviors \
 [5] SDL2 Library, for multimedia \
-[6] Large list of tests, but hard to use if nothing is working. Also worth to run the tests in an accurate emulator \
+[6] Large list of tests, but hard to use if nothing is working. Also worth to run the tests in an accurate emulator 
 
 references : \
 [1] https://www.pagetable.com/c64ref/6502/ \
@@ -15,7 +15,7 @@ references : \
 [3] http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html#:~:text=The%20definition%20of%20the%206502,%3E%20127%20or%20%3C%20%2D128. \
 [4] https://www.nesdev.org/wiki \
 [5] https://wiki.libsdl.org/SDL2/FrontPage \
-[6] https://slack.net/~ant/nes-tests/ \ 
+[6] https://slack.net/~ant/nes-tests/  
 
 
 # Prerequisites
@@ -28,20 +28,20 @@ references : \
 
 # Downloading SDL (inside your project folder)
 
-mkdir vendored
-cd vendored
-git clone https://github.com/libsdl-org/SDL
-cd SDL
-git checkout release-2.32.x
+mkdir vendored \
+cd vendored \
+git clone https://github.com/libsdl-org/SDL \
+cd SDL \
+git checkout release-2.32.x 
 
 # Building the project
 
 # Windows (with MinGW)
-cmake -S . -B build -G "MinGW Makefiles"
+cmake -S . -B build -G "MinGW Makefiles" \
 cmake --build build
 
 # Linux / macOS
-cmake -S . -B build
+cmake -S . -B build \
 cmake --build build
 
 # Applying changes (rebuilding after edits)
@@ -49,12 +49,13 @@ cmake --build build
 
 # Output
 
-The compiled binary is available at:
+The compiled binary is available at: 
 
 build/bin/emuNES
 
 # Notes
 
 - On Windows, if SDL was built as a shared library, copy SDL2.dll to build/bin so the binary runs.
-- On Linux/macOS, the default generator is sufficient.
+- On Linux, the default generator is sufficient.
+- On macOS, to be tested yet. 
 - After editing source files, just run `cmake --build build` to rebuild.
