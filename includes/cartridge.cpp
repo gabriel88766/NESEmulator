@@ -6,7 +6,7 @@ Cartridge::~Cartridge(){
     delete[] header;
     delete[] prg_banks;
     delete[] chr_banks;
-    delete[] chr_rom;
+    delete[] prg_ram;
     delete[] prg_rom;
 }
 
@@ -26,11 +26,11 @@ void Cartridge::read(const char *filename){
         }else{
             bus->setPPUHorizontal(true);
         }
-        if(header[6] & 2) ram = true;
+        // if(header[6] & 2) ram = true;
         prg_banks = new unsigned char[0x4000 * header[4]];
         chr_banks = new unsigned char[0x2000 * header[5]];
         prg_rom = new unsigned char[0x8000];
-        chr_rom = new unsigned char[0x2000];
+        prg_ram = new unsigned char[0x2000];
         input.read((char *)prg_banks, 0x4000 * header[4]);
         input.read((char *)chr_banks, 0x2000 * header[5]);
 
@@ -47,13 +47,10 @@ void Cartridge::read(const char *filename){
                     }
                 }
                 if(header[5] == 1){
-                    for(int j=0;j<0x2000;j++){
-                        chr_rom[j] = chr_banks[j];
-                    }
-                }else{
-                    ram = true;
-                    for(int j=0;j<0x2000;j++) chr_rom[j] = 0;
-                }
+                    //load into VRAM
+                    bus->loadCHR(chr_banks, 0, 0x2000);
+                }else bus->setRAMPPU();
+                break;
             case 3:
                 if(header[4] == 2){
                     for(int j=0;j<0x8000;j++){
@@ -62,8 +59,21 @@ void Cartridge::read(const char *filename){
                 }
                 //bank 00 default
                 for(int j=0;j<0x2000;j++){
-                    chr_rom[j] = chr_banks[j];
+                    bus->loadCHR(chr_banks, 0, 0x2000);
                 }
+                break;
+            case 185:
+                // printf("here\n");
+                if(header[4] == 2){
+                    for(int j=0;j<0x8000;j++){
+                        prg_rom[j] = prg_banks[j];
+                    }
+                }
+                //bank 00 default
+                for(int j=0;j<0x2000;j++){
+                    bus->loadCHR(chr_banks, 0, 0x2000);
+                }
+                bus->setRAMPPU();
         }
         
         
@@ -84,27 +94,39 @@ unsigned char Cartridge::readMemory(unsigned short address){
         return prg_rom[address & 0x7FFF];
     }
     if(address < 0x8000){
-        return chr_rom[address & 0x1FFF];
+        return prg_ram[address & 0x1FFF];
     }
     return 0;
 }
 void Cartridge::writeMemory(unsigned short address, unsigned char value){
-    if(ram && address >= 0x6000 && address < 0x8000){
-        chr_rom[address & 0x1FFF] = value;
+    if(address >= 0x6000 && address < 0x8000){
+        prg_ram[address & 0x1FFF] = value;
     }
     if(address >= 0x8000){
         //bankswitch?
         switch(mapper){
             //TODO
-            case 3:
+            case 3:{
                 int val;
                 if(header[5] <= 4) val = value & 3;
                 else if(header[5] <= 8) val = value & 7;
                 else val = value & 0xF;
                 printf("%d\n", val);
                 for(int j=0;j<0x2000;j++){
-                    chr_rom[j] = chr_banks[j + val*0x2000];
+                    bus->loadCHR(chr_banks + val*0x2000, 0, 0x2000);
                 }
+                break;
+            }
+            case 185:{
+                int val;
+                if(header[5] <= 4) val = value & 3;
+                else if(header[5] <= 8) val = value & 7;
+                else val = value & 0xF;
+                printf("%d\n", val);
+                for(int j=0;j<0x2000;j++){
+                    // chr_rom[j] = chr_banks[j + val*0x2000];
+                }
+            }
         }
     }
 }

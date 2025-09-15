@@ -10,11 +10,11 @@ private:
     Bus *bus;
     unsigned char *header;
     unsigned char *prg_rom;
-    unsigned char *chr_rom;
+    unsigned char *prg_ram;
     unsigned char *prg_banks;
     unsigned char *chr_banks;
     unsigned char mapper;
-    bool ram;
+    // bool ram;
 public:
     ~Cartridge();
     void connectBus(Bus *bus);

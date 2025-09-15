@@ -77,19 +77,19 @@ int main(int argc, char** args){
     bus.connectCartridge(&cartridge);
     bus.connectPPU(&ppu);
     // cartridge.read("testROM/Magmax.nes"); 
-    // cartridge.read("testROM/RoadFighter.nes"); 
-    // cartridge.read("testROM/Super_Mario_Bros.nes");
+    // cartridge.read("testROM/RoadFighterbr.nes"); 
+    // cartridge.read("testROM/SuperMarioBros.nes");
     // cartridge.read("testROM/SMB3.nes");
     // cartridge.read("testROM/FieldCombat.nes");
     // cartridge.read("testROM/SonSon.nes");
     // cartridge.read("testROM/BumpnJump.nes");
     // cartridge.read("testROM/DigDug.nes");
-    cartridge.read("testROM/AccuracyCoin.nes");
+    // cartridge.read("testROM/AccuracyCoin.nes");
     // cartridge.read("testROM/Balloon_fight.nes");
     // cartridge.read("testROM/nestest.nes");
         // cartridge.read("testROM/Tennis.nes");
+        cartridge.read("testROM/BWingsx.nes");
     // cartridge.read("testROM/LodeRunner.nes");
-    // cartridge.read("testROM/BumpnJump.nes");
     // cartridge.read("testROM/blargg/sprite_hit_tests/06.right_edge.nes");
     // cartridge.read("testROM/blargg/cpu_timing_test.nes");
     cpu.powerON();
@@ -99,7 +99,7 @@ int main(int argc, char** args){
     bool running = true;
     unsigned char buttons = 0xFF;
     cpu.reset();
-    int up = 1;
+    int X = 0;
     while (running) {
         Uint64 start = SDL_GetPerformanceCounter();
         SDL_Event e;
@@ -172,7 +172,6 @@ int main(int argc, char** args){
 
         // Cap to 60 FPS
         if(16.666f - elapsedMS > 0) SDL_Delay(floor(16.666f - elapsedMS));
-
     }
 
     SDL_CloseAudio();

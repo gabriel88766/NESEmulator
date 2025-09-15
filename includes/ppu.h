@@ -2,7 +2,9 @@
 #define PPU_H
 
 #include "bus.h"
+#include <vector>
 class Bus;
+
 
 
 struct Color{
@@ -17,11 +19,12 @@ private:
     Bus *bus;
     Color colors[4];
     unsigned char regs[10]; 
-    unsigned char VRAM[0x4000]; //not accurate, however it will ease the program
     unsigned char OAM[0x100];
     unsigned short nametables[512][480]; //update after writting on VRAM
     bool opaque[512][480];
     bool isopaque[256][240];
+    bool sprzr[256][240];
+    std::vector<std::pair<unsigned short, bool>> spr[256][240];
     int frameCount = 0;
     bool is_read = false;
     unsigned char value = 0;
@@ -29,22 +32,21 @@ private:
     unsigned char buffer = 0;
     int wreg = 0;
     int xx = 0, yy = 0;
+    int sx = 0, sy = 0;
     int colx = -1, coly = -1;
     unsigned short treg;
     unsigned short xreg;
+    bool ram = false;
 public:
+    unsigned char VRAM[0x4000]; //exposed, so cartridge can write via bus
     bool okVblank = false;
     bool horizontal; //set by cartridge
     Color framebuffer[256][240];
     PPU();
-    void changeNametables(unsigned short address, unsigned char value);
+    
     void connectBus(Bus *bus);
     unsigned char readMemory(unsigned short address);
     void writeMemory(unsigned short address, unsigned char value);
-    void printFrame();
-    void writeTile(int x, int y);
-    void writeTiles();
-    void writeSprites();
     void writeOAM(unsigned char value);
     
     //regs functions
@@ -61,6 +63,16 @@ public:
     void setVblank();
     void clearVblank();
     void move();
+
+    //print frame
+    void evaluateNametables();
+    void evaluateScrollX();
+    void evaluateScrollY();
+    void changeNametables(unsigned short address, unsigned char value);
+    void evaluateSprites();
+
+    //misc
+    void setRAM();
 };
 // (obj.*function)();
 #endif

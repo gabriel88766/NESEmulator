@@ -101,3 +101,13 @@ void Bus::setPPUHorizontal(bool value){
 void Bus::movePPU(){
     ppu->move();
 }
+
+void Bus::loadCHR(unsigned char *data, int beg, int end){
+    for(int j=beg;j<end;j++){
+        ppu->VRAM[j] = data[j-beg];
+    }
+}
+
+void Bus::setRAMPPU(){
+    ppu->setRAM();
+}

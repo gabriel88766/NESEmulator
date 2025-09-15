@@ -102,54 +102,6 @@ void PPU::connectBus(Bus *bus){
     this->bus = bus;
 }
 
-//this will update nametable, not the VRAM
-//seems more efficient.
-//goal, make only necessary changes
-void PPU::changeNametables(unsigned short address, unsigned char value){
-    if((address & 0x3FF) >= 0x3C0){
-        return;
-    }
-    int rx = 8 * (address % 32);
-    int ry = 8 * ((address & 0x3FF) / 32);
-    unsigned short memplc = (address & 0x2C00) + 0x3C0 + (rx/32) + 8*(ry/32);
-    unsigned char color_pat = VRAM[memplc];
-    if((ry % 32) >= 16){
-        if((rx % 32) >= 16) color_pat = (color_pat >> 6) & 3;
-        else color_pat = (color_pat >> 4) & 3;
-    }else{
-        if((rx % 32) >= 16) color_pat = (color_pat >> 2) & 3;
-        else color_pat = color_pat & 3;
-    }
-    rx += address & 0x400 ? 256 : 0;
-    ry += address & 0x800 ? 240 : 0;
-    
-    int offset = 0x6000 + 16 * value;
-    if(regs[0] & 0x10) offset += 0x1000;
-    
-    
-    for(int j=0;j<8;j++){
-        unsigned char bytesl = bus->readAddress(offset+j); 
-        unsigned char bytesr = bus->readAddress(offset+j+8);
-        for(int k=0; k < 8; k++){
-            unsigned curColor = (bytesl & (1 << (7-k)))? 1 : 0;
-            curColor += (bytesr & (1 << (7-k)))? 2 : 0;
-            if(horizontal){
-                int rf = rx >= 256 ? rx - 256 : rx + 256;
-                nametables[rf + k][ry + j] = nametables[rx + k][ry + j] = curColor ? 0x3F00+color_pat*4 + curColor : 0x3F00;
-                opaque[rf + k][ry + j] = opaque[rx + k][ry + j] = curColor ? true : false;
-            }else{
-                int rf = ry >= 240 ? ry - 240 : ry + 240;
-                nametables[rx + k][rf + j] = nametables[rx + k][ry + j] = curColor ? 0x3F00+color_pat*4 + curColor : 0x3F00;
-                opaque[rx + k][rf + j] = opaque[rx + k][ry + j] = curColor ? true : false;
-            }
-        }
-
-    }
-
-    
-}
-
-
 unsigned char PPU::readMemory(unsigned short address){
     is_read = true;
     (this->*register_action[address & 0x7])();
@@ -160,124 +112,6 @@ void PPU::writeMemory(unsigned short address, unsigned char value){
     is_read = false;
     this->value = value;
     (this->*register_action[address & 0x7])();
-}
-
-void PPU::printFrame(){
-    //make_frame here:
-    if(regs[1] & 0x08){
-        if(horizontal){
-            for(int j=0x2000;j<0x2400;j++){
-                changeNametables(j, VRAM[j]);
-            }
-            for(int j=0x2800;j<0x2C00;j++){
-                changeNametables(j, VRAM[j]);
-            }
-        }else{
-            for(int j=0x2000;j<0x2800;j++){
-                changeNametables(j, VRAM[j]);
-            }
-        }
-        writeTiles();
-    }else{
-        for(int x = 0; x < 512; x++){
-            for(int y = 0; y < 480; y++){
-                nametables[x][y] = nametables[x][y] = 0x3F00;
-                opaque[x][y] = false;
-            }
-        }
-        for(int x = 0; x < 256; x++){
-            for(int y = 0; y < 240; y++){
-                isopaque[x][y] = false;
-            }
-        }
-    }
-    if(regs[1] & 0x10) writeSprites();
-}
-
-void PPU::writeTiles(){ //Write some tile in the image file, fetch color from
-    
-    int sx = ((treg & 0x1F) << 3) + (xreg & 7);
-    int sy = (((treg & 0x3E0) >> 5) << 3) + ((treg >> 12) & 7);
-    if(treg & 0x400) sx += 256;
-    if(treg & 0x800) sy += 240; 
-    int rx, ry;
-    for(int x=0;x<256;x++){
-        for(int y=0;y<240;y++){
-            if(x < 8 && (!(regs[1] & 0x2))){
-                isopaque[x][y] = false;
-                framebuffer[x][y] = color_pallete_1[VRAM[0x3F00]];
-                continue;
-            }
-            rx = sx + x;
-            ry = sy + y;
-            if(rx >= 512) rx -= 512;
-            if(ry >= 480) ry -= 480;
-
-            isopaque[x][y] = opaque[rx][ry];
-            if(!isopaque[x][y]) framebuffer[x][y] = color_pallete_1[VRAM[0x3F00]];
-            else framebuffer[x][y] = color_pallete_1[VRAM[nametables[rx][ry]]];
-        }
-    }
-}
-
-void PPU::writeSprites(){
-    colx = -1, coly = -1;
-    bool mode = regs[0] & 0x20 ? true : false;//true means 8x16, false means 8x8
-    unsigned short table = (regs[0] & 8)  && (!mode) ? 0x1000 : 0; 
-    for(int i=63;i>=0;i--){
-        unsigned char y = OAM[4*i];
-        unsigned char x = OAM[4*i + 3];
-        bool hidden = OAM[4*i + 2] & 0x20 ? true : false;
-        bool flipx = OAM[4*i + 2] & 0x40 ? true : false;
-        bool flipy = OAM[4*i + 2] & 0x80 ? true : false;
-        int color_pat = OAM[4*i + 2] & 3;
-        colors[1] = color_pallete_1[VRAM[(0x3F10+color_pat*4 + 1) & 0x3F1F]];
-        colors[2] = color_pallete_1[VRAM[(0x3F10+color_pat*4 + 2) & 0x3F1F]];
-        colors[3] = color_pallete_1[VRAM[(0x3F10+color_pat*4 + 3) & 0x3F1F]];
-        unsigned short offset = 0x6000 + table; 
-
-        int ysz;
-        if(mode){
-            ysz = 16;
-            if(OAM[4*i + 1] & 1) offset += 0x1000;
-            offset += 16 * (OAM[4*i+1] & 0xFE);
-        }else{
-            ysz = 8;
-            offset += 16 * OAM[4*i+1]; 
-        }
-        for(int j=0;j<ysz;j++){
-            unsigned char bytesl, bytesr;
-            if(j < 8){
-                bytesl = bus->readAddress(offset+j); 
-                bytesr = bus->readAddress(offset+j+8);
-            }else{
-                bytesl = bus->readAddress(offset+8+j); 
-                bytesr = bus->readAddress(offset+16+j);
-            }
-            for(int k=0;k<8;k++){
-                unsigned curColor = (bytesl & (1 << (7-k)))? 1 : 0;
-                curColor += (bytesr & (1 << (7-k)))? 2 : 0;
-                int rx = flipx ? x + 7 - k : x + k;
-                int ry = ysz == 8 ? (flipy ? y + 7 - j: y + j) : (flipy ? y + 15 - j : y + j);
-                if(rx >= 256 || ry >= 240 || curColor == 0) continue;
-                if(rx < 8 && (!(regs[1] & 4))){
-                    continue;
-                }
-
-
-                if(hidden){
-                    if(!isopaque[rx][ry]) framebuffer[rx][ry] = colors[curColor];
-                }else{
-                    framebuffer[rx][ry] = colors[curColor];
-                }
-                if(i == 0 && curColor != 0 && isopaque[rx][ry] && rx != 255 && ry != 239){
-                     colx = rx;
-                     coly = ry;
-                }
-            }
-        }
-    
-    }
 }
 
 void PPU::writeOAM(unsigned char value){
@@ -351,7 +185,7 @@ void PPU::PPUDATA(){
     if(is_read){
         retVal = buffer;
         if(address < 0x2000){
-            buffer = bus->readAddress(0x6000 + address);
+            buffer = VRAM[address];
         }else if(address < 0x3000){
             buffer = VRAM[address];
         }else if(address < 0x3F00){
@@ -364,7 +198,8 @@ void PPU::PPUDATA(){
         }
     }else{
         if(address < 0x2000){
-            bus->writeAddress(0x6000 + address, value);
+            // bus->writeAddress(0x6000 + address, value);
+            if(ram) VRAM[address] = value;
             //not used yet.
         }else if(address < 0x3000){
             VRAM[address] = value;
@@ -405,20 +240,175 @@ void PPU::move(){
     if(yy == 262){
         yy = 0;
     }
+    if(xx < 256 && yy < 240){
+        if(xx == 0) evaluateScrollX();
+        if(yy == 0) evaluateScrollY();
+        int cx = xx + sx;
+        int cy = yy + sy;
+        if(cx >= 512) cx -= 512;
+        if(cy >= 480) cy -= 480;
+        unsigned short bg = nametables[cx][cy];
+        if(xx < 8 && (!(regs[1] & 0x2))) bg = 0x3F00;
+        framebuffer[xx][yy] = color_pallete_1[VRAM[bg]];
+        if(bg != 0x3F00 && sprzr[xx][yy]){
+            regs[2] |= 0x40;
+        }
+        for(auto [cl, hid] : spr[xx][yy]){
+            if(hid){
+                if(bg == 0x3F00 && cl != 0x3F00) framebuffer[xx][yy] = color_pallete_1[VRAM[cl]];
+            }else{
+                if(cl != 0x3F00) framebuffer[xx][yy] = color_pallete_1[VRAM[cl]];
+            }
+        }
+    }
 
-    if(xx == 0 && yy == 0){
-        printFrame();
-    }
-    
-    if(xx == colx && yy == coly){
-        regs[2] |= 0x40;
-    }
     if(yy == 241 && xx == 1){
         setVblank();
     }
     if(yy == 261 && xx == 1){
         clearVblank();
+        evaluateNametables();
+        evaluateSprites();
         okVblank = true;
     }
     
+}
+
+
+//Not perfect, but ok;
+void PPU::evaluateNametables(){
+    if(regs[1] & 0x08){
+        if(horizontal){
+            for(int j=0x2000;j<0x2400;j++){
+                changeNametables(j, VRAM[j]);
+            }
+            for(int j=0x2800;j<0x2C00;j++){
+                changeNametables(j, VRAM[j]);
+            }
+        }else{
+            for(int j=0x2000;j<0x2800;j++){
+                changeNametables(j, VRAM[j]);
+            }
+        }
+    }else{
+        for(int x=0;x<512;x++){
+            for(int y=0;y<480;y++){
+                nametables[x][y] = 0x3F00;
+            }
+        }
+    }
+}
+
+void PPU::evaluateScrollX(){
+    sx = ((treg & 0x1F) << 3) + (xreg & 7);
+    if(treg & 0x400) sx += 256;
+}
+
+void PPU::evaluateScrollY(){
+    sy = (((treg & 0x3E0) >> 5) << 3) + ((treg >> 12) & 7);
+    if(treg & 0x800) sy += 240;
+}
+
+void PPU::changeNametables(unsigned short address, unsigned char value){
+    if((address & 0x3FF) >= 0x3C0){
+        return;
+    }
+    int rx = 8 * (address % 32);
+    int ry = 8 * ((address & 0x3FF) / 32);
+    unsigned short memplc = (address & 0x2C00) + 0x3C0 + (rx/32) + 8*(ry/32);
+    unsigned char color_pat = VRAM[memplc];
+    if((ry % 32) >= 16){
+        if((rx % 32) >= 16) color_pat = (color_pat >> 6) & 3;
+        else color_pat = (color_pat >> 4) & 3;
+    }else{
+        if((rx % 32) >= 16) color_pat = (color_pat >> 2) & 3;
+        else color_pat = color_pat & 3;
+    }
+    rx += address & 0x400 ? 256 : 0;
+    ry += address & 0x800 ? 240 : 0;
+    
+    int offset = 16 * value;
+    if(regs[0] & 0x10) offset += 0x1000;
+    
+    
+    for(int j=0;j<8;j++){
+        unsigned char bytesl = VRAM[offset+j]; 
+        unsigned char bytesr = VRAM[offset+j+8];
+        for(int k=0; k < 8; k++){
+            unsigned curColor = (bytesl & (1 << (7-k)))? 1 : 0;
+            curColor += (bytesr & (1 << (7-k)))? 2 : 0;
+            if(horizontal){
+                int rf = rx >= 256 ? rx - 256 : rx + 256;
+                nametables[rf + k][ry + j] = nametables[rx + k][ry + j] = curColor ? 0x3F00+color_pat*4 + curColor : 0x3F00;
+            }else{
+                int rf = ry >= 240 ? ry - 240 : ry + 240;
+                nametables[rx + k][rf + j] = nametables[rx + k][ry + j] = curColor ? 0x3F00+color_pat*4 + curColor : 0x3F00;
+            }
+        }
+    }    
+}
+
+void PPU::evaluateSprites(){
+    for(int x=0;x<256;x++){
+        for(int y=0;y<240;y++){
+            sprzr[x][y] = false;
+            spr[x][y].clear();
+        }
+    }
+    if(!(regs[1] & 0x10)) return;
+    bool mode = regs[0] & 0x20 ? true : false;//true means 8x16, false means 8x8
+    unsigned short table = (regs[0] & 8)  && (!mode) ? 0x1000 : 0; 
+    for(int i=63;i>=0;i--){
+        unsigned char y = OAM[4*i];
+        unsigned char x = OAM[4*i + 3];
+        bool hidden = OAM[4*i + 2] & 0x20 ? true : false;
+        bool flipx = OAM[4*i + 2] & 0x40 ? true : false;
+        bool flipy = OAM[4*i + 2] & 0x80 ? true : false;
+        int color_pat = OAM[4*i + 2] & 3;
+        colors[1] = color_pallete_1[VRAM[(0x3F10+color_pat*4 + 1) & 0x3F1F]];
+        colors[2] = color_pallete_1[VRAM[(0x3F10+color_pat*4 + 2) & 0x3F1F]];
+        colors[3] = color_pallete_1[VRAM[(0x3F10+color_pat*4 + 3) & 0x3F1F]];
+        unsigned short offset = table; 
+
+        int ysz;
+        if(mode){
+            ysz = 16;
+            if(OAM[4*i + 1] & 1) offset += 0x1000;
+            offset += 16 * (OAM[4*i+1] & 0xFE);
+        }else{
+            ysz = 8;
+            offset += 16 * OAM[4*i+1]; 
+        }
+        for(int j=0;j<ysz;j++){
+            unsigned char bytesl, bytesr;
+            if(j < 8){
+                bytesl = VRAM[offset+j]; 
+                bytesr = VRAM[offset+j+8];
+            }else{
+                bytesl = VRAM[offset+8+j]; 
+                bytesr = VRAM[offset+16+j];
+            }
+            for(int k=0;k<8;k++){
+                unsigned curColor = (bytesl & (1 << (7-k)))? 1 : 0;
+                curColor += (bytesr & (1 << (7-k)))? 2 : 0;
+                int rx = flipx ? x + 7 - k : x + k;
+                int ry = ysz == 8 ? (flipy ? y + 7 - j: y + j) : (flipy ? y + 15 - j : y + j);
+                if(rx >= 256 || ry >= 240 || curColor == 0) continue;
+                if(rx < 8 && (!(regs[1] & 4))){
+                    continue;
+                }
+                if(curColor != 0){
+                    spr[rx][ry].push_back({0x3F10+color_pat*4 + curColor, hidden});
+                }
+                if(i == 0 && curColor != 0&& rx != 255 && ry != 239){
+                    sprzr[rx][ry] = true;
+                }
+            }
+        }
+    
+    }
+}
+
+void PPU::setRAM(){
+    ram = true;
 }

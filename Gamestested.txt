@@ -1,0 +1,12 @@
+list of games tested (these should be Ok):
+
+Magmax
+RoadFighter
+SuperMarioBros
+FieldCombat
+SonSon
+DigDug
+BalloonFight
+Tennis
+LodeRunner
+

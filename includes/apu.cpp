@@ -8,7 +8,6 @@ APU::APU(){
 void APU::reset(){
     for(int i=0;i<0x20;i++) reg[i] = 0;
     tc = 0;
-    len2[0] = len2[1] = len2[3] = 0xFF;
     for(int i=0;i<5;i++){
         en[i] = true;
         if(i < 3) phase[i] = 0;
@@ -27,7 +26,7 @@ unsigned char APU::readMemory(unsigned short address){
     if(address == 0x4015){
         unsigned char ans = 0;
         for(int j=0;j<=4;j++){
-            if(en[j] && len[j] && len2[j]) ans |= (1 << j);
+            if(en[j] && len[j]) ans |= (1 << j);
         }
         if(F){
              ans |= (1 << 6);
@@ -54,8 +53,8 @@ void APU::writeMemory(unsigned short address, unsigned char value){
         len[address >> 2] = len_table[value >> 3];
         if(address == 3 || address == 7) phase[address >> 2] = 0;
     }
-    if(address & 0x8){
-        len2[2] = value & 0x7F;
+    if(address == 0x8){
+        len2 = value & 0x7F;
     }
 }
 
@@ -94,9 +93,9 @@ void APU::tick(){
 }
 
 void APU::linearCounter(){
-    if(en[2] && (!(reg[8] & 0x80))){
-        if(len2[2] != 0) len2[2]--;
-    }
+    // len2 = 0xFF;
+    if(reg[8] & 0x80) len2 = reg[8] & 0x7F;
+    else if(len2 != 0) len2--;
 }
 
 void APU::sweep(){
@@ -128,9 +127,10 @@ void APU::getSampling(short *buffer, int length, double rate){
     //pulse1 pulse2 triangle
     for(int j=0;j<length;j++) buffer[j] = 0;
     for(int i=0;i<3;i++){
+        // if(i != 2) continue; //disable all channels except triangle
         if(!en[i]) continue;
         if(!len[i]) continue;
-        // if(!len2[i]) continue;
+        if(i == 2 && len2 == 0) continue;
         int v = reg[4*i] & 0xF;
         if(i <= 1 && v == 0) continue; //only pulse have volume
         int t = ((reg[4*i+3] & 7) << 8) + reg[4*i+2];
@@ -158,5 +158,17 @@ void APU::getSampling(short *buffer, int length, double rate){
             if (phase[i] >= twoPI)
                 phase[i] -= twoPI;
         }
+    }
+
+
+    //normalizing
+    int mx = 0;
+    for(int j=0;j<length;j++){
+        if(buffer[j] > 0 && buffer[j] > mx) mx = buffer[j];
+        if(buffer[j] < 0 && -buffer[j] > mx) mx = -buffer[j];
+    }
+    double mtp = 32700.0/mx;
+    for(int j=0;j<length;j++){
+        buffer[j]  = buffer[j] * mtp;
     }
 }

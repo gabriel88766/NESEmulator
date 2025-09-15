@@ -39,6 +39,8 @@ public:
     long long int getCycles();
     void setPPUHorizontal(bool value);
     void movePPU();
+    void loadCHR(unsigned char *data, int beg, int end);
+    void setRAMPPU();
 };
 
 #endif

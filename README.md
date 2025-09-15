@@ -1,5 +1,6 @@
 # NESEmulator
-In development: NES Emulator - CPP - 
+In development: NES Emulator - CPP.
+TODO: mappers and improve APU
 
 [1] Used to implement all instructions and addressing modes \
 [2] Klaus functional test, used to test CPU 6502 \

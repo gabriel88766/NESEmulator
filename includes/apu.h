@@ -13,8 +13,8 @@ private:
     bool F, I;
     bool en[5];
     double phase[3];
-    unsigned char len[4];
-    unsigned char len2[4];
+    unsigned char len[5];
+    unsigned char len2;
     unsigned char len_table[32] = {10, 254, 20,  2, 40,  4, 80,  6, 160,  8, 60, 10, 14, 12, 26, 14, 12, 16, 24, 18, 48, 20, 96, 22, 192, 24, 72, 26, 16, 28, 32, 30};
 public:
     APU();
