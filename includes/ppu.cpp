@@ -95,7 +95,6 @@ PPU::PPU(){
     memset(regs, 0, sizeof(regs));
     memset(framebuffer, 0, sizeof(framebuffer));
     // regs[2] = 0xA0;
-    colx = coly = -1;
 }
 
 void PPU::connectBus(Bus *bus){
@@ -112,6 +111,7 @@ void PPU::writeMemory(unsigned short address, unsigned char value){
     is_read = false;
     this->value = value;
     (this->*register_action[address & 0x7])();
+    openbus = value;
 }
 
 void PPU::writeOAM(unsigned char value){
@@ -121,7 +121,8 @@ void PPU::writeOAM(unsigned char value){
 
 //regs functions
 void PPU::PPUCTRL(){
-    if(bus->getCycles() >= 29658){
+    if(is_read) retVal = openbus;
+    else if(bus->getCycles() >= 29658){
         if(((regs[0] & 0x80) == 0) && (value & 0x80) && (regs[2] & 0x80)) bus->setNMI();
         regs[0] = value;
         treg &= 0x73FF;
@@ -129,51 +130,61 @@ void PPU::PPUCTRL(){
     }
 }   
 void PPU::PPUMASK(){
-    if(bus->getCycles() >= 29658) regs[1] = value;
+    if(is_read) retVal = openbus;
+    else if(bus->getCycles() >= 29658) regs[1] = value;
 }
 void PPU::PPUSTATUS(){
-    retVal = regs[2];
+    openbus = retVal = regs[2] | (0x1F & openbus);
+    bus_set = bus->getCycles();
     regs[2] &= 0x7F;
     wreg = 0;
 }
 void PPU::OAMADDR(){
-    if(is_read);
+    if(is_read) retVal = openbus;
     else regs[3] = value;
 }
 void PPU::OAMDATA(){
     if(is_read){
-        retVal = OAM[regs[3]];
+        openbus = retVal = OAM[regs[3]];
+        bus_set = bus->getCycles();
     }else{
         writeOAM(value);
-        // regs[4] = value;
     }
 }
 void PPU::PPUSCROLL(){
-    if(bus->getCycles() >= 29658){
-        if(wreg == 0){
-            treg &= 0x7FE0;
-            treg |= value >> 3;
-            xreg = value & 7;
-        }else{
-            treg &= 0xC1F;
-            treg |= (value & 7) << 12;
-            treg |= (value >> 3) << 5;
-        }
-        wreg ^= 1;
-    }    
+    if(is_read) retVal = openbus;
+    else{
+        if(bus->getCycles() >= 29658){
+            if(wreg == 0){
+                treg &= 0x7FE0;
+                treg |= value >> 3;
+                xreg = value & 7;
+            }else{
+                treg &= 0xC1F;
+                treg |= (value & 7) << 12;
+                treg |= (value >> 3) << 5;
+            }
+            wreg ^= 1;
+        }    
+    }
 }
-void PPU::PPUADDR(){//value *((unsigned short *)(regs+7));
-    if(bus->getCycles() >= 29658){
-        if(wreg == 0){
-            regs[7] = value; //high byte
-            treg &= 0xFF;
-            treg |= (value << 8) & 0x3F00;
-        } else{
-            regs[8] = value; //low byte
-            treg &= 0x7F00;
-            treg |= value;
+void PPU::PPUADDR(){
+    if(is_read) retVal = openbus;
+    else{
+        if(bus->getCycles() >= 29658){
+            if(wreg == 0){
+                regs[7] = value; //high byte
+                treg &= 0xFF;
+                treg |= (value << 8) & 0x3F00;
+            } else{
+                regs[8] = value; //low byte
+                treg &= 0x7F00;
+                treg |= value;
+                // evaluateScrollX(); this is expected, but I will test.
+                // evaluateScrollY();
+            }
+            wreg ^= 1;
         }
-        wreg ^= 1;
     }
 }
 void PPU::PPUDATA(){
@@ -196,10 +207,12 @@ void PPU::PPUDATA(){
             // if(!(address & 3)) retVal = buffer = VRAM[address & 0x3F0F];
             // else retVal = buffer = VRAM[address & 0x3F1F];
         }
+        bus_set = bus->getCycles();
+        openbus = retVal;
     }else{
         if(address < 0x2000){
             // bus->writeAddress(0x6000 + address, value);
-            if(ram) VRAM[address] = value;
+            // if(ram) VRAM[address] = value;
             //not used yet.
         }else if(address < 0x3000){
             VRAM[address] = value;
@@ -269,9 +282,17 @@ void PPU::move(){
         clearVblank();
         evaluateNametables();
         evaluateSprites();
+        if(bus_set + 50000 < bus->getCycles()) openbus = 0;
         okVblank = true;
     }
-    
+    if(yy == 261 && xx == 339){
+        if(even){
+            yy = 0;
+            xx = -1;
+        }
+        even ^= 1;
+    }
+    if(yy == 261 && xx >= 257 && xx <= 320) regs[3] = 0;
 }
 
 

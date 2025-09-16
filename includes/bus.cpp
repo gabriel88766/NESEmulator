@@ -111,3 +111,15 @@ void Bus::loadCHR(unsigned char *data, int beg, int end){
 void Bus::setRAMPPU(){
     ppu->setRAM();
 }
+
+void Bus::clockAPU(){
+    apu->clock();
+}
+
+unsigned char Bus::readCartridge(unsigned short address){
+    return 0;
+}
+
+void Bus::writeCartridge(unsigned short address, unsigned char value){
+
+}

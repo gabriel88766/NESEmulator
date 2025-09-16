@@ -7,7 +7,7 @@ APU::APU(){
 
 void APU::reset(){
     for(int i=0;i<0x20;i++) reg[i] = 0;
-    tc = 0;
+    cnt = 0;
     for(int i=0;i<5;i++){
         en[i] = true;
         if(i < 3) phase[i] = 0;
@@ -23,21 +23,35 @@ void APU::connectBus(Bus *bus){
 
 
 unsigned char APU::readMemory(unsigned short address){
-    if(address == 0x4015){
+    if(address == 0x15){
         unsigned char ans = 0;
         for(int j=0;j<=4;j++){
             if(en[j] && len[j]) ans |= (1 << j);
         }
         if(F){
              ans |= (1 << 6);
+             F = false;
              bus->setIRQ(false);
         }
         if(I) ans |= (1 << 7);
-
         return ans;
     }else return 0;//should not happen
 }   
 void APU::writeMemory(unsigned short address, unsigned char value){
+    if(address == 0x17){
+        if(value & 0x40){
+            bus->setIRQ(false);
+            F = false;
+        } 
+        cnt = 0;
+        if(value & 0x80){
+            F = false;
+            bus->setIRQ(false);
+            sweep();
+            lenCounter();
+            linearCounter();
+        }
+    }
     reg[address] = value;
     if(address == 0x15){
         for(int j=0;j<=4;j++){
@@ -49,9 +63,11 @@ void APU::writeMemory(unsigned short address, unsigned char value){
             }
         }
     }
-    if(address <= 0xF && (address & 3 == 3) && en[address >> 2]){
+    if(address <= 0xF && ((address & 3) == 3) && en[address >> 2]){
         len[address >> 2] = len_table[value >> 3];
-        if(address == 3 || address == 7) phase[address >> 2] = 0;
+        if(address == 3 || address == 7){
+             phase[address >> 2] = 0;
+        }
     }
     if(address == 0x8){
         len2 = value & 0x7F;
@@ -59,36 +75,48 @@ void APU::writeMemory(unsigned short address, unsigned char value){
 }
 
 void APU::tick(){
-    tc++;
     if(reg[0x17] & 0x80){
-        if(tc == 2 || tc == 5){
+        if(cnt == CYCLES[1] || cnt == CYCLES[4]){
             //Length counter and sweep
             sweep();
             lenCounter();
         }
-        if(tc != 4){
+        if(cnt != CYCLES[3]){
             //Envelope and linear counter
             linearCounter();
         }
 
 
-        if(tc == 5) tc = 0;
+        if(cnt == CYCLES[4]){
+            cnt = 0;
+            F = false;
+            bus->setIRQ(false);
+        }
     }else{
         //Envelope and linear counter
         linearCounter();
-        if(tc == 2 || tc == 4){
+        if(cnt == CYCLES[1] || cnt == CYCLES[3]){
             //Length counter and sweep
             sweep();
             lenCounter();
         }
-        if(tc == 4){
+        if(cnt == CYCLES[3]){
             //interruption
+            F = false;
+            bus->setIRQ(false);
             if(!(reg[0x17] & 0x40)){
                 bus->setIRQ(true);
                 F = true;
             }
-            tc = 0;
+            cnt = 0;
         }
+    }
+}
+
+void APU::clock(){
+    cnt++;
+    for(int j=0;j<5;j++){
+        if(CYCLES[j] == cnt) tick();
     }
 }
 
@@ -130,7 +158,7 @@ void APU::getSampling(short *buffer, int length, double rate){
         // if(i != 2) continue; //disable all channels except triangle
         if(!en[i]) continue;
         if(!len[i]) continue;
-        if(i == 2 && len2 == 0) continue;
+        // if(i == 2 && len2 == 0) continue;
         int v = reg[4*i] & 0xF;
         if(i <= 1 && v == 0) continue; //only pulse have volume
         int t = ((reg[4*i+3] & 7) << 8) + reg[4*i+2];

@@ -321,8 +321,14 @@ void CPU::BRK(){
     setB();
     Push(P);
     setI();
-    PC = bus->readAddress(0xFFFF) << 8;
-    PC |= bus->readAddress(0xFFFE);
+    if(nmi_pin){
+        nmi_pin = false;
+        PC = bus->readAddress(0xFFFB) << 8;
+        PC |= bus->readAddress(0xFFFA);
+    }else{
+        PC = bus->readAddress(0xFFFF) << 8;
+        PC |= bus->readAddress(0xFFFE);
+    }
 }
 void CPU::BVC(){
     if(!getV()) Branch();
@@ -562,8 +568,9 @@ void CPU::AHX(){
     // bus->writeAddress(memory, A & X & H);
 }
 void CPU::ALR(){
-    LSR();
     AND();
+    isAccumulator = true;
+    LSR();
 }
 void CPU::ANC(){
     A = A & bus->readAddress(memory);
@@ -574,11 +581,15 @@ void CPU::ANC(){
 }
 void CPU::ARR(){
     AND();
+    isAccumulator = true;
     ROR();
-    
 }
 void CPU::AXS(){
-
+    if((A & X) <= bus->readAddress(memory)) setC();
+    else clearC();
+    X = (A & X) - bus->readAddress(memory);
+    checkN(X);
+    checkZ(X);
 }
 void CPU::DCP(){
     DEC();
@@ -609,10 +620,10 @@ void CPU::SAX(){
     bus->writeAddress(memory, A & X);
 }
 void CPU::SHX(){
-
+    bus->writeAddress(memory, X & ((unsigned char)(memory >> 8)) + 1);
 }
 void CPU::SHY(){
-
+    bus->writeAddress(memory, Y & (memory >> 8));
 }
 void CPU::SLO(){
     ASL();
@@ -836,7 +847,10 @@ void CPU::printState(unsigned short opc){
 }
 
 void CPU::nextInstruction(){
-     if(irq_pin){
+    if(nmi_pin){
+        nmi_pin = false;
+        nmi();
+    }else if(irq_pin){
         if(!getI()){
             irq_pin = false;//interrupt handled
             irq();
@@ -847,23 +861,13 @@ void CPU::nextInstruction(){
         else setI();
         chI = false;
     }
-    if(nmi_pin){
-        nmi_pin = false;
-        nmi();
+    for(int i=0;i<instructions[opcode].cycles;i++){
+        newCycle();
     }
-    
-
-   
-    
-    
     unsigned short opc = PC;
     opcode = bus->readAddress(PC++);
     invoke(instructions[opcode].address_mode, *this);
     invoke(instructions[opcode].instruction, *this);
-    for(int i=0;i<instructions[opcode].cycles;i++){
-        newCycle();
-    }
-    // printState(opc);
 }
 
 void CPU::powerON(){
@@ -891,8 +895,15 @@ void CPU::irq(){
     clearB();
     Push(P);
     setI();
-    PC = bus->readAddress(0xFFFF) << 8;
-    PC |= bus->readAddress(0xFFFE);
+    if(nmi_pin){
+        nmi_pin = false;
+        PC = bus->readAddress(0xFFFB) << 8;
+        PC |= bus->readAddress(0xFFFA);
+    }else{
+        PC = bus->readAddress(0xFFFF) << 8;
+        PC |= bus->readAddress(0xFFFE);
+    }
+    
     
 }
 
@@ -928,5 +939,6 @@ void CPU::setnmi(){
 
 void CPU::newCycle(){
     total_cycles++;
+    bus->clockAPU();
     for(int j=0;j<3;j++) bus->movePPU();
 }

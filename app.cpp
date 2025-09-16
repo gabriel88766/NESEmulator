@@ -32,6 +32,8 @@ void audio_callback(void* userdata, Uint8* stream, int length) {
     apu.getSampling((Sint16*) stream, length / sizeof(Sint16), sampleRate);
 }
 
+
+
 int main(int argc, char** args){
     // freopen("testROM/logs", "w", stdout); //for debug
     if (SDL_Init( SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) < 0) {
@@ -82,13 +84,12 @@ int main(int argc, char** args){
     // cartridge.read("testROM/SMB3.nes");
     // cartridge.read("testROM/FieldCombat.nes");
     // cartridge.read("testROM/SonSon.nes");
-    // cartridge.read("testROM/BumpnJump.nes");
+    cartridge.read("testROM/BumpnJump.nes");
     // cartridge.read("testROM/DigDug.nes");
     // cartridge.read("testROM/AccuracyCoin.nes");
-    // cartridge.read("testROM/Balloon_fight.nes");
     // cartridge.read("testROM/nestest.nes");
         // cartridge.read("testROM/Tennis.nes");
-        cartridge.read("testROM/BWingsx.nes");
+        // cartridge.read("testROM/BWingsx.nes");
     // cartridge.read("testROM/LodeRunner.nes");
     // cartridge.read("testROM/blargg/sprite_hit_tests/06.right_edge.nes");
     // cartridge.read("testROM/blargg/cpu_timing_test.nes");
@@ -142,10 +143,6 @@ int main(int argc, char** args){
         wait = true;
         while(!ppu.okVblank){
             cpu.nextInstruction();
-            if(cpu.total_cycles >= ntk){
-                apu.tick();
-                ntk += clock_apu;
-            }
         }
         ppu.okVblank = false;
         wait = false;

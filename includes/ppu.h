@@ -30,13 +30,16 @@ private:
     unsigned char value = 0;
     unsigned char retVal = 0;
     unsigned char buffer = 0;
+    unsigned char openbus = 0;
+    long long int bus_set = -1;
     int wreg = 0;
     int xx = 0, yy = 0;
     int sx = 0, sy = 0;
-    int colx = -1, coly = -1;
     unsigned short treg;
     unsigned short xreg;
     bool ram = false;
+    unsigned long long int spset = 0; //unused
+    char even = 1;
 public:
     unsigned char VRAM[0x4000]; //exposed, so cartridge can write via bus
     bool okVblank = false;

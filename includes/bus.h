@@ -41,6 +41,9 @@ public:
     void movePPU();
     void loadCHR(unsigned char *data, int beg, int end);
     void setRAMPPU();
+    void clockAPU();
+    unsigned char readCartridge(unsigned short address);
+    void writeCartridge(unsigned short address, unsigned char value);
 };
 
 #endif

@@ -111,7 +111,6 @@ void Cartridge::writeMemory(unsigned short address, unsigned char value){
                 if(header[5] <= 4) val = value & 3;
                 else if(header[5] <= 8) val = value & 7;
                 else val = value & 0xF;
-                printf("%d\n", val);
                 for(int j=0;j<0x2000;j++){
                     bus->loadCHR(chr_banks + val*0x2000, 0, 0x2000);
                 }
@@ -122,7 +121,7 @@ void Cartridge::writeMemory(unsigned short address, unsigned char value){
                 if(header[5] <= 4) val = value & 3;
                 else if(header[5] <= 8) val = value & 7;
                 else val = value & 0xF;
-                printf("%d\n", val);
+                printf("%d\n", value);
                 for(int j=0;j<0x2000;j++){
                     // chr_rom[j] = chr_banks[j + val*0x2000];
                 }
