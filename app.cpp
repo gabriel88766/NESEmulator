@@ -80,11 +80,11 @@ int main(int argc, char** args){
     bus.connectPPU(&ppu);
     // cartridge.read("testROM/Magmax.nes"); 
     // cartridge.read("testROM/RoadFighterbr.nes"); 
-    // cartridge.read("testROM/SuperMarioBros.nes");
+    cartridge.read("testROM/SuperMarioBros.nes");
     // cartridge.read("testROM/SMB3.nes");
     // cartridge.read("testROM/FieldCombat.nes");
     // cartridge.read("testROM/SonSon.nes");
-    cartridge.read("testROM/BumpnJump.nes");
+    // cartridge.read("testROM/BumpnJump.nes");
     // cartridge.read("testROM/DigDug.nes");
     // cartridge.read("testROM/AccuracyCoin.nes");
     // cartridge.read("testROM/nestest.nes");
