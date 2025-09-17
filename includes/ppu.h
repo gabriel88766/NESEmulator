@@ -2,17 +2,18 @@
 #define PPU_H
 
 #include "bus.h"
+#include "ImageMaker.h"
 #include <vector>
 class Bus;
 
 
 
-struct Color{
-    unsigned char R;
-    unsigned char G;
-    unsigned char B;
-    //Alpha default FF
-};
+// struct Color{
+//     unsigned char R;
+//     unsigned char G;
+//     unsigned char B;
+//     //Alpha default FF
+// };
 
 class PPU{
 private:
@@ -76,6 +77,8 @@ public:
 
     //misc
     void setRAM();
+    //debug - get the current nametables printed using the format RGB
+    void printNametables();
 };
 // (obj.*function)();
 #endif

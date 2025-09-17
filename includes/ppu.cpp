@@ -212,7 +212,8 @@ void PPU::PPUDATA(){
     }else{
         if(address < 0x2000){
             // bus->writeAddress(0x6000 + address, value);
-            // if(ram) VRAM[address] = value;
+            printf("here\n");
+            if(ram) VRAM[address] = value;
             //not used yet.
         }else if(address < 0x3000){
             VRAM[address] = value;
@@ -432,4 +433,16 @@ void PPU::evaluateSprites(){
 
 void PPU::setRAM(){
     ram = true;
+}
+
+void PPU::printNametables(){
+    Image img;
+    img.makeImage(512, 480);
+    for(int y=0;y<480;y++){
+        for(int x = 0; x < 512; x++){
+            Color c = color_pallete_1[VRAM[nametables[x][y]]];
+            img.setPixel(x, y, c);
+        }
+    }
+    img.writeImage("debug.bmp");
 }

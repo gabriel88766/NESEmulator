@@ -57,7 +57,7 @@ int main(int argc, char** args){
     SDL_Texture* texture = NULL;
 	SDL_Window* window = NULL;
 
-    window = SDL_CreateWindow( "EmuNES", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 512, 480, SDL_WINDOW_SHOWN );
+    window = SDL_CreateWindow( "EmuNES", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 512, 504, SDL_WINDOW_SHOWN );
 
     if ( !window ) {
 		cout << "Error creating window: " << SDL_GetError()  << endl;
@@ -90,18 +90,20 @@ int main(int argc, char** args){
     // cartridge.read("testROM/nestest.nes");
         // cartridge.read("testROM/Tennis.nes");
         // cartridge.read("testROM/BWingsx.nes");
+        // cartridge.read("testROM/NutsMilk.nes");
     // cartridge.read("testROM/LodeRunner.nes");
     // cartridge.read("testROM/blargg/sprite_hit_tests/06.right_edge.nes");
     // cartridge.read("testROM/blargg/cpu_timing_test.nes");
     cpu.powerON();
-
+    // cpu.reset();
 
 
     bool running = true;
     unsigned char buttons = 0xFF;
-    cpu.reset();
+    // cpu.reset();
     int X = 0;
     while (running) {
+        SDL_Rect button = {0, 0, 60, 25};
         Uint64 start = SDL_GetPerformanceCounter();
         SDL_Event e;
         // Do event loop
@@ -134,6 +136,15 @@ int main(int argc, char** args){
                         case SDLK_x:      buttons &= ~0x01; break; // A
                     }
                     break;
+                case SDL_MOUSEBUTTONDOWN:
+                    if(e.button.button == SDL_BUTTON_LEFT){
+                        if (e.button.x >= button.x && e.button.x < button.x + button.w &&
+                            e.button.y >= button.y && e.button.y < button.y + button.h) {
+                            // Button clicked!
+                            cout << "clicked\n";
+                        }
+                    }
+                    break;
             }
             if (e.type == SDL_QUIT) running = false;
         }
@@ -154,12 +165,27 @@ int main(int argc, char** args){
                 frame[y * 256 + x] = (pixel.R << 16) | (pixel.G << 8) | (pixel.B);
             }
         }
-        SDL_UpdateTexture(texture, NULL, frame, 256 * sizeof(uint32_t));
-
         SDL_RenderClear(renderer);
-        // upscale NES 256x240 → window 512x480
-        SDL_Rect dstRect = {0, 0, 512, 480};
+
+        SDL_Rect menubar = {0, 0, 512, 25};
+        SDL_SetRenderDrawColor(renderer, 240, 240, 240, 255);
+        SDL_RenderFillRect(renderer, &menubar);
+
+        SDL_UpdateTexture(texture, NULL, frame, 256 * sizeof(uint32_t));
+        
+        SDL_Rect dstRect = {0, 25, 512, 480};
         SDL_RenderCopy(renderer, texture, NULL, &dstRect);
+        
+
+        
+        int mx, my;
+        SDL_GetMouseState(&mx, &my);
+        int hover = (mx >= button.x && mx < button.x + button.w &&
+                    my >= button.y && my < button.y + button.h);
+        if (hover) SDL_SetRenderDrawColor(renderer, 180, 180, 180, 255);
+        else       SDL_SetRenderDrawColor(renderer, 240, 240, 240, 255);
+        SDL_RenderFillRect(renderer, &button);
+
 
         SDL_RenderPresent(renderer);
 

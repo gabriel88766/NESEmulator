@@ -31,7 +31,7 @@ void Image::makeImage(unsigned width, unsigned height){
 }
 
 void Image::setPixel(int x, int y, Color c){
-    int location = 4 * (y * width + x);
+    int location = 4 * ((height - y - 1) * width + x);
     data[location] = c.B;
     data[location+1] = c.G;
     data[location+2] = c.R;

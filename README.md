@@ -26,10 +26,9 @@ references : \
   - Linux/macOS: GCC, Clang, or Xcode toolchain (macOS only)
 - Git
 
-# Downloading SDL and DearImGui (inside your project folder)
+# Downloading SDL (inside your project folder)
 
 mkdir vendored \
-git clone https://github.com/ocornut/imgui.git vendored/imgui \
 cd vendored \
 git clone https://github.com/libsdl-org/SDL \
 cd SDL \
