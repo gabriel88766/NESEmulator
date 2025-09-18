@@ -692,28 +692,33 @@ void CPU::abs(){
         memory = PC - 1;
         bus->last_value = high;
     }
+    // bus->readAddress(memory);
 }
 void CPU::absX(){
     unsigned short low = bus->readAddress(PC++);
     unsigned short high = bus->readAddress(PC++);
     memory = (high << 8) | low;
     if(((memory + X) & 0xFF00) != (memory & 0xFF00)){ //page cross
+        bus->readAddress((memory & 0xFF00) + ((memory + X) & 0xFF));
         if((opcode != 0x9D) && ((opcode & 0x0F) != 0x0E)){ 
             newCycle();
         }
     } 
     memory += X;
+    // bus->readAddress(memory);
 }
 void CPU::absY(){
     unsigned short low = bus->readAddress(PC++);
     unsigned short high = bus->readAddress(PC++);
     memory = (high << 8) | low;
     if(((memory + Y) & 0xFF00) != (memory & 0xFF00)){ //page cross
+        bus->readAddress((memory & 0xFF00) + ((memory + Y) & 0xFF));
         if(opcode != 0x99){ 
             newCycle();
         }
     } 
     memory += Y;
+    // bus->readAddress(memory);
 }
 void CPU::imm(){
     memory = PC++;
@@ -736,6 +741,7 @@ void CPU::indX(){
     unsigned short low = bus->readAddress(memIndirect++);
     unsigned short high = bus->readAddress(memIndirect);
     memory = (high << 8) | low;
+    // bus->readAddress(memory);
 }
 void CPU::indY(){
     unsigned char memIndirect = bus->readAddress(PC++);
@@ -743,11 +749,13 @@ void CPU::indY(){
     unsigned short high = bus->readAddress(memIndirect);
     memory = (high << 8) | low;
     if(((memory + Y) & 0xFF00) != (memory & 0xFF00)){ //page cross
+        bus->readAddress((memory & 0xFF00) + ((memory + Y) & 0xFF));
         if(opcode != 0x91 ){
             newCycle();
         }
     } 
     memory += Y;
+    // bus->readAddress(memory);
 }
 void CPU::rel(){
     char value = bus->readAddress(PC++);

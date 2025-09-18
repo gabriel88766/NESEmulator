@@ -18,11 +18,11 @@ private:
     PPU *ppu;
     APU *apu;
     int cb = 0;
-    
     bool strobe;
     unsigned char regbut1;
     unsigned char regbut2;
 public:
+    unsigned char open;
     unsigned char last_value;
     unsigned char button1;
     unsigned char button2;
@@ -39,7 +39,6 @@ public:
     void setPPUHorizontal(bool value);
     void movePPU();
     void loadCHR(unsigned char *data, int beg, int end);
-    void setRAMPPU();
     void clockAPU();
     unsigned char readCartridge(unsigned short address);
     void writeCartridge(unsigned short address, unsigned char value);

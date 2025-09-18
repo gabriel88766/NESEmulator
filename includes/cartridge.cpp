@@ -9,6 +9,7 @@ Cartridge::~Cartridge(){
     delete[] chr_banks;
     delete[] prg_ram; 
     delete[] prg_rom;
+    delete[] chr_rom;
 }
 
 void Cartridge::load(unsigned char *dst, unsigned char *src, int sz){
@@ -126,9 +127,8 @@ void Cartridge::writeMemory(unsigned short address, unsigned char value){
                 if(header[5] <= 4) val = value & 3;
                 else if(header[5] <= 8) val = value & 7;
                 else val = value & 0xF;
-                for(int j=0;j<0x2000;j++){
-                    load(chr_rom, chr_banks + val*0x2000, 0x2000);
-                }
+                load(chr_rom, chr_banks + val*0x2000, 0x2000);
+                
                 break;
             }
         }

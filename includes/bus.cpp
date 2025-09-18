@@ -23,40 +23,46 @@ void Bus::connectAPU(APU *apu){
 }
 
 unsigned char Bus::readAddress(unsigned short address){
+    unsigned char ret;
     if(address < 0x2000){
-        return last_value = cpu->readAddress(address & 0x7FF); //readmemory[address & 0x7FF];
+        ret = cpu->readAddress(address & 0x7FF); //readmemory[address & 0x7FF];
     }else if(address < 0x4000){
-        return last_value = ppu->readMemory(address);
+        ret = ppu->readMemory(address);
     }else if(address < 0x4020){
         //apu
         if(address == 0x4016){
-            unsigned char result = (regbut1 & 1) ? 0 : 1;  // active low
+            ret = (regbut1 & 1) ? 0 : 1;  // active low
             if (!strobe) {
                 regbut1 >>= 1;
             }
-            return result;
         }else if(address == 0x4017){
-            unsigned char result = (regbut2 & 1) ? 0 : 1;  // active low
+            ret = (regbut2 & 1) ? 0 : 1;  // active low
             if (!strobe) {
                 regbut2 >>= 1;
             }
-            return result;
-        }else return apu->readMemory(address & 0x1F);
+        }else ret = apu->readMemory(address & 0x1F);
     }else if(address < 0x6000){
-        return last_value;
+        ret = last_value;
     }else{
         //cartridge area
         if(address >= 0x6000){
-            return cartridge->readMemory(address);
+            ret = cartridge->readMemory(address);
         }
     }
-    return 0;
+    if(open){
+        ret &= ~open;
+        ret |= open & last_value;
+        open = 0;
+    }
+    return last_value = ret;
 }
 
 void Bus::writeAddress(unsigned short address, unsigned char value){
+    last_value = value;
     if(address < 0x2000){
         cpu->writeAddress(address & 0x7FF, value);
     }else if(address < 0x4000){
+        // if(address > 0x2007) ppu->writeMemory(address, value);
         ppu->writeMemory(address, value);
     }else if(address < 0x4020){
         if(address == 0x4014){
@@ -107,10 +113,6 @@ void Bus::loadCHR(unsigned char *data, int beg, int end){
     for(int j=beg;j<end;j++){
         ppu->VRAM[j] = data[j-beg];
     }
-}
-
-void Bus::setRAMPPU(){
-    ppu->setRAM();
 }
 
 void Bus::clockAPU(){

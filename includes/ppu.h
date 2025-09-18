@@ -20,17 +20,23 @@ private:
     Bus *bus;
     unsigned char regs[10]; 
     unsigned char OAM[0x100];
-    unsigned short nametables[512][480]; //update after writting on VRAM
+    unsigned short nametables0[512][480]; //update after writting on VRAM
+    unsigned short nametables1[512][480];
     bool opaque[512][480];
     bool isopaque[256][240];
-    bool sprzr[256][240];
-    std::vector<std::pair<unsigned short, bool>> spr[256][240];
+    // bool sprzr[256][240];
+    bool sprzr[256];
+    unsigned short mp[512][480];
+    unsigned char mp2[512][480];
+    // std::vector<std::pair<unsigned short, bool>> spr[256][240];
+    std::vector<std::pair<unsigned short, bool>> spr[256];
     bool is_read = false;
     unsigned char value = 0;
     unsigned char retVal = 0;
     unsigned char buffer = 0;
     unsigned char openbus = 0;
     long long int bus_set = -1;
+    int bst;
     int wreg = 0;
     int xx = 0, yy = 0;
     int sx = 0, sy = 0;
@@ -66,12 +72,11 @@ public:
     void move();
 
     //print frame
-    void evaluateNametables();
     void evaluateScrollX();
     void evaluateScrollY();
+    void fillMaps();
     void changeNametables(unsigned short address, unsigned char value);
-    void evaluateSprites();
-
+    void evaluateSprites(int yy);
     //misc
     void setRAM();
     //debug - get the current nametables printed using the format RGB

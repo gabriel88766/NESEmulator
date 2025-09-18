@@ -27,16 +27,12 @@ bool wait = false;
 double sampleRate = 44100.0;
 
 void audio_callback(void* userdata, Uint8* stream, int length) {
-    // while(wait){
-    //     cout << "wait..\n";
-    // }
     apu.getSampling((Sint16*) stream, length / sizeof(Sint16), sampleRate);
 }
 
 
 
 int main(int argc, char** args){
-    // freopen("testROM/logs", "w", stdout); //for debug
     if (SDL_Init( SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) < 0) {
 		cout << "Error initializing SDL: " << SDL_GetError() << endl;
 		return 1;
@@ -58,7 +54,7 @@ int main(int argc, char** args){
     SDL_Texture* texture = NULL;
 	SDL_Window* window = NULL;
 
-    window = SDL_CreateWindow( "EmuNES", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 512, 504, SDL_WINDOW_SHOWN );
+    window = SDL_CreateWindow( "EmuNES - Click the blue button to choose the ROM", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 512, 504, SDL_WINDOW_SHOWN );
 
     if ( !window ) {
 		cout << "Error creating window: " << SDL_GetError()  << endl;
@@ -79,33 +75,14 @@ int main(int argc, char** args){
     bus.connectCPU(&cpu);
     bus.connectCartridge(&cartridge);
     bus.connectPPU(&ppu);
-    // cartridge.read("testROM/Magmax.nes"); 
-    // cartridge.read("testROM/RoadFighterbr.nes"); 
-    // cartridge.read("testROM/SuperMarioBros.nes");
-    // cartridge.read("testROM/SMB3.nes");
-    // cartridge.read("testROM/FieldCombat.nes");
-    // cartridge.read("testROM/SonSon.nes");
-    // cartridge.read("testROM/BumpnJump.nes");
-    // cartridge.read("testROM/DigDug.nes");
-    // cartridge.read("testROM/AccuracyCoin.nes");
-    // cartridge.read("testROM/nestest.nes");
-        // cartridge.read("testROM/Tennis.nes");
-        // cartridge.read("testROM/BWingsx.nes");
-        // cartridge.read("testROM/NutsMilk.nes");
-    // cartridge.read("testROM/LodeRunner.nes");
-    // cartridge.read("testROM/blargg/sprite_hit_tests/06.right_edge.nes");
-    // cartridge.read("testROM/blargg/cpu_timing_test.nes");
-    // cpu.powerON();
-    // cpu.reset();
 
 
     bool running = true;
     unsigned char buttons = 0xFF;
-    // cpu.reset();
     int X = 0;
     bool loaded = false;
     while (running) {
-        SDL_Rect button = {0, 0, 60, 25};
+        SDL_Rect button = {0, 0, 70, 25};
         Uint64 start = SDL_GetPerformanceCounter();
         SDL_Event e;
         // Do event loop
@@ -143,12 +120,13 @@ int main(int argc, char** args){
                         if (e.button.x >= button.x && e.button.x < button.x + button.w &&
                             e.button.y >= button.y && e.button.y < button.y + button.h) {
                             // Button clicked!
+                            ppu.printNametables();
                             SDL_PauseAudioDevice(device_id, 1);
                             const char *format[] = {"*.nes"};
                             auto filename = tinyfd_openFileDialog("Select Nes File", NULL, 1, format, "Nes file(.nes)", 0);
-                            
-                            ppu.powerON();
                             loaded = cartridge.read(filename);
+                            if(!loaded) break;
+                            ppu.powerON();
                             cpu.powerON();
                             cpu.reset();
                             apu.reset();
@@ -195,8 +173,8 @@ int main(int argc, char** args){
         SDL_GetMouseState(&mx, &my);
         int hover = (mx >= button.x && mx < button.x + button.w &&
                     my >= button.y && my < button.y + button.h);
-        if (hover) SDL_SetRenderDrawColor(renderer, 180, 180, 180, 255);
-        else       SDL_SetRenderDrawColor(renderer, 240, 240, 240, 255);
+        if (hover) SDL_SetRenderDrawColor(renderer, 120, 120, 255, 255);
+        else       SDL_SetRenderDrawColor(renderer, 50, 50, 255, 255);
         SDL_RenderFillRect(renderer, &button);
 
 
@@ -205,7 +183,7 @@ int main(int argc, char** args){
         Uint64 end = SDL_GetPerformanceCounter();
 
         float elapsedMS = (end - start) / (float)SDL_GetPerformanceFrequency() * 1000.0f;
-
+        cout << 16.666f - elapsedMS << "\n";
         // Cap to 60 FPS
         if(16.666f - elapsedMS > 0) SDL_Delay(floor(16.666f - elapsedMS));
     }
