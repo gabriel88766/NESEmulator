@@ -17,7 +17,6 @@ private:
     Cartridge *cartridge;
     PPU *ppu;
     APU *apu;
-    unsigned char memory[0x800];
     int cb = 0;
     
     bool strobe;

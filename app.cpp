@@ -3,6 +3,7 @@
 #include "includes/ppu.h"
 #include "includes/cartridge.h"
 #include "includes/apu.h"
+#include "vendored/tinyfiledialogs/tinyfiledialogs.h"
 #include <SDL2/SDL.h>
 #include <iostream>
 #include <math.h>
@@ -80,7 +81,7 @@ int main(int argc, char** args){
     bus.connectPPU(&ppu);
     // cartridge.read("testROM/Magmax.nes"); 
     // cartridge.read("testROM/RoadFighterbr.nes"); 
-    cartridge.read("testROM/SuperMarioBros.nes");
+    // cartridge.read("testROM/SuperMarioBros.nes");
     // cartridge.read("testROM/SMB3.nes");
     // cartridge.read("testROM/FieldCombat.nes");
     // cartridge.read("testROM/SonSon.nes");
@@ -94,7 +95,7 @@ int main(int argc, char** args){
     // cartridge.read("testROM/LodeRunner.nes");
     // cartridge.read("testROM/blargg/sprite_hit_tests/06.right_edge.nes");
     // cartridge.read("testROM/blargg/cpu_timing_test.nes");
-    cpu.powerON();
+    // cpu.powerON();
     // cpu.reset();
 
 
@@ -102,6 +103,7 @@ int main(int argc, char** args){
     unsigned char buttons = 0xFF;
     // cpu.reset();
     int X = 0;
+    bool loaded = false;
     while (running) {
         SDL_Rect button = {0, 0, 60, 25};
         Uint64 start = SDL_GetPerformanceCounter();
@@ -141,7 +143,16 @@ int main(int argc, char** args){
                         if (e.button.x >= button.x && e.button.x < button.x + button.w &&
                             e.button.y >= button.y && e.button.y < button.y + button.h) {
                             // Button clicked!
-                            cout << "clicked\n";
+                            SDL_PauseAudioDevice(device_id, 1);
+                            const char *format[] = {"*.nes"};
+                            auto filename = tinyfd_openFileDialog("Select Nes File", NULL, 1, format, "Nes file(.nes)", 0);
+                            
+                            ppu.powerON();
+                            loaded = cartridge.read(filename);
+                            cpu.powerON();
+                            cpu.reset();
+                            apu.reset();
+                            SDL_PauseAudioDevice(device_id, 0);
                         }
                     }
                     break;
@@ -151,20 +162,22 @@ int main(int argc, char** args){
         bus.button1 = buttons;
         bus.button2 = 0xFF;
         // Do physics loop
-        wait = true;
-        while(!ppu.okVblank){
-            cpu.nextInstruction();
-        }
-        ppu.okVblank = false;
-        wait = false;
-        // Do rendering loop
-        for (int y = 0; y < 240; ++y) {
-            for (int x = 0; x < 256; ++x) {
-                Color pixel = ppu.framebuffer[x][y];
-                // pack into 0xRRGGBB (32-bit)
-                frame[y * 256 + x] = (pixel.R << 16) | (pixel.G << 8) | (pixel.B);
+        if(loaded){
+            while(!ppu.okVblank){
+                cpu.nextInstruction();
+            }
+            ppu.okVblank = false;
+            wait = false;
+            // Do rendering loop
+            for (int y = 0; y < 240; ++y) {
+                for (int x = 0; x < 256; ++x) {
+                    Color pixel = ppu.framebuffer[x][y];
+                    // pack into 0xRRGGBB (32-bit)
+                    frame[y * 256 + x] = (pixel.R << 16) | (pixel.G << 8) | (pixel.B);
+                }
             }
         }
+        //renderer
         SDL_RenderClear(renderer);
 
         SDL_Rect menubar = {0, 0, 512, 25};

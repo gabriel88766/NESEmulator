@@ -7,6 +7,7 @@ class Bus;
 
 class CPU{
 private:
+    unsigned char RAM[0x800];
     unsigned char A, X, Y, S, P;
     unsigned short PC;
     unsigned short memory;
@@ -151,6 +152,9 @@ public:
     void setirq(bool value);
     void setnmi();
     void newCycle();
+
+    unsigned char readAddress(unsigned short address);
+    void writeAddress(unsigned short address, unsigned char value);
 };
 
 struct Instruction{

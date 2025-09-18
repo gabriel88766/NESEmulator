@@ -1,10 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
-project(emuNES LANGUAGES CXX)
+project(emuNES LANGUAGES C CXX)
 
 # Set output folders
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
-
 
 set(SOURCES
     app.cpp
@@ -14,6 +13,7 @@ set(SOURCES
     includes/cartridge.cpp
     includes/apu.cpp
     includes/imageMaker.cpp
+    vendored/tinyfiledialogs/tinyfiledialogs.c
 )
 
 set(HEADERS
@@ -23,6 +23,7 @@ set(HEADERS
     includes/cartridge.h
     includes/apu.h
     includes/imageMaker.h
+    vendored/tinyfiledialogs/tinyfiledialogs.h
 )
 
 # Add SDL as subdirectory

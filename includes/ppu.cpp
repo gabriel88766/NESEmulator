@@ -180,8 +180,8 @@ void PPU::PPUADDR(){
                 regs[8] = value; //low byte
                 treg &= 0x7F00;
                 treg |= value;
-                // evaluateScrollX(); this is expected, but I will test.
-                // evaluateScrollY();
+                evaluateScrollY();
+                sy -= yy;
             }
             wreg ^= 1;
         }
@@ -196,7 +196,7 @@ void PPU::PPUDATA(){
     if(is_read){
         retVal = buffer;
         if(address < 0x2000){
-            buffer = VRAM[address];
+            buffer = bus->readCartridge(address);
         }else if(address < 0x3000){
             buffer = VRAM[address];
         }else if(address < 0x3F00){
@@ -211,10 +211,7 @@ void PPU::PPUDATA(){
         openbus = retVal;
     }else{
         if(address < 0x2000){
-            // bus->writeAddress(0x6000 + address, value);
-            printf("here\n");
-            if(ram) VRAM[address] = value;
-            //not used yet.
+            bus->writeCartridge(address, value);
         }else if(address < 0x3000){
             VRAM[address] = value;
         }else if(address < 0x3F00){
@@ -354,8 +351,8 @@ void PPU::changeNametables(unsigned short address, unsigned char value){
     
     
     for(int j=0;j<8;j++){
-        unsigned char bytesl = VRAM[offset+j]; 
-        unsigned char bytesr = VRAM[offset+j+8];
+        unsigned char bytesl = bus->readCartridge(offset+j); 
+        unsigned char bytesr = bus->readCartridge(offset+j+8);
         for(int k=0; k < 8; k++){
             unsigned curColor = (bytesl & (1 << (7-k)))? 1 : 0;
             curColor += (bytesr & (1 << (7-k)))? 2 : 0;
@@ -371,6 +368,7 @@ void PPU::changeNametables(unsigned short address, unsigned char value){
 }
 
 void PPU::evaluateSprites(){
+    Color colors[4];
     for(int x=0;x<256;x++){
         for(int y=0;y<240;y++){
             sprzr[x][y] = false;
@@ -404,11 +402,11 @@ void PPU::evaluateSprites(){
         for(int j=0;j<ysz;j++){
             unsigned char bytesl, bytesr;
             if(j < 8){
-                bytesl = VRAM[offset+j]; 
-                bytesr = VRAM[offset+j+8];
+                bytesl = bus->readCartridge(offset+j);
+                bytesr = bus->readCartridge(offset+j+8);
             }else{
-                bytesl = VRAM[offset+8+j]; 
-                bytesr = VRAM[offset+16+j];
+                bytesl = bus->readCartridge(offset+8+j); 
+                bytesr = bus->readCartridge(offset+16+j);
             }
             for(int k=0;k<8;k++){
                 unsigned curColor = (bytesl & (1 << (7-k)))? 1 : 0;
@@ -431,10 +429,6 @@ void PPU::evaluateSprites(){
     }
 }
 
-void PPU::setRAM(){
-    ram = true;
-}
-
 void PPU::printNametables(){
     Image img;
     img.makeImage(512, 480);
@@ -445,4 +439,17 @@ void PPU::printNametables(){
         }
     }
     img.writeImage("debug.bmp");
+}
+
+
+void PPU::powerON(){
+    okVblank = false;
+    xx = yy = sx = sy = 0;
+    memset(VRAM, 0, sizeof(VRAM));
+    memset(regs, 0, sizeof(regs));
+    memset(OAM, 0, sizeof(OAM));
+    memset(nametables, 0, sizeof(nametables));
+    memset(opaque, 0, sizeof(opaque));
+    memset(isopaque, 0, sizeof(isopaque));
+    memset(sprzr, 0, sizeof(sprzr));
 }

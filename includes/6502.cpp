@@ -876,6 +876,8 @@ void CPU::powerON(){
     S = 0xFD;
     PC = 0x8000;
     total_cycles = 0;
+    isAccumulator = irq_pin = nmi_pin = chI = false;
+    for(int j=0;j<0x800;j++) RAM[j] = 0;
 }
 
 void CPU::reset(){
@@ -941,4 +943,12 @@ void CPU::newCycle(){
     total_cycles++;
     bus->clockAPU();
     for(int j=0;j<3;j++) bus->movePPU();
+}
+
+
+unsigned char CPU::readAddress(unsigned short address){
+    return RAM[address];
+}
+void CPU::writeAddress(unsigned short address, unsigned char value){
+    RAM[address] = value;
 }

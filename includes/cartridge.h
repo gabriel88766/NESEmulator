@@ -13,12 +13,14 @@ private:
     unsigned char *prg_ram;
     unsigned char *prg_banks;
     unsigned char *chr_banks;
+    unsigned char *chr_rom;
     unsigned char mapper;
-    // bool ram;
+    void load(unsigned char *dst, unsigned char *src, int sz);
 public:
+    bool ram = false; //accessed by bus for openbus behavior
     ~Cartridge();
     void connectBus(Bus *bus);
-    void read(const char *filename);
+    bool read(const char *filename);
     unsigned char readMemory(unsigned short address);
     void writeMemory(unsigned short address, unsigned char value);
 };

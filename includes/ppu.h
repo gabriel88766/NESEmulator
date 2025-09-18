@@ -18,7 +18,6 @@ class Bus;
 class PPU{
 private:
     Bus *bus;
-    Color colors[4];
     unsigned char regs[10]; 
     unsigned char OAM[0x100];
     unsigned short nametables[512][480]; //update after writting on VRAM
@@ -26,7 +25,6 @@ private:
     bool isopaque[256][240];
     bool sprzr[256][240];
     std::vector<std::pair<unsigned short, bool>> spr[256][240];
-    int frameCount = 0;
     bool is_read = false;
     unsigned char value = 0;
     unsigned char retVal = 0;
@@ -38,7 +36,6 @@ private:
     int sx = 0, sy = 0;
     unsigned short treg;
     unsigned short xreg;
-    bool ram = false;
     unsigned long long int spset = 0; //unused
     char even = 1;
 public:
@@ -79,6 +76,7 @@ public:
     void setRAM();
     //debug - get the current nametables printed using the format RGB
     void printNametables();
+    void powerON();
 };
 // (obj.*function)();
 #endif

@@ -30,6 +30,7 @@ references : \
 
 mkdir vendored \
 cd vendored \
+git clone https://github.com/native-toolkit/libtinyfiledialogs.git vendored/tinyfiledialogs \
 git clone https://github.com/libsdl-org/SDL \
 cd SDL \
 git checkout release-2.32.x 

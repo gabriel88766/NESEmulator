@@ -10,8 +10,7 @@ void APU::reset(){
     cnt = 0;
     for(int i=0;i<5;i++){
         en[i] = true;
-        if(i < 3) phase[i] = 0;
-        if(i < 4) len[i] = 0;
+        phase[i] = len[i] = vol[i] = dvp[i] = 0;
     }
     F = I = false;
 }
@@ -224,7 +223,7 @@ void APU::Pulse2(short *buffer, int length, double rate){
 void APU::Triangle(short *buffer, int length, double rate){
     if(!en[2]) return;
     if(!len[2]) return;
-    if(len2) return;
+    // if(len2) return;
     int t = ((reg[0xB] & 7) << 8) + reg[0xA];
     double freq =  1789773.0/(32.0 * (t+1));
     double phase_inc =  (twoPI * freq) / rate;

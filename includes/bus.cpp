@@ -24,7 +24,7 @@ void Bus::connectAPU(APU *apu){
 
 unsigned char Bus::readAddress(unsigned short address){
     if(address < 0x2000){
-        return last_value = memory[address & 0x7FF];
+        return last_value = cpu->readAddress(address & 0x7FF); //readmemory[address & 0x7FF];
     }else if(address < 0x4000){
         return last_value = ppu->readMemory(address);
     }else if(address < 0x4020){
@@ -55,7 +55,7 @@ unsigned char Bus::readAddress(unsigned short address){
 
 void Bus::writeAddress(unsigned short address, unsigned char value){
     if(address < 0x2000){
-        memory[address & 0x7FF] = value;
+        cpu->writeAddress(address & 0x7FF, value);
     }else if(address < 0x4000){
         ppu->writeMemory(address, value);
     }else if(address < 0x4020){
@@ -64,7 +64,7 @@ void Bus::writeAddress(unsigned short address, unsigned char value){
             unsigned short begin = value;
             begin <<= 8;
             for(unsigned short j = 0; j < 0x100; j++){
-                ppu->writeOAM(memory[begin + j]);
+                ppu->writeOAM(cpu->readAddress(begin + j));
                 cpu->total_cycles += 2;
                 for(int u=0;u<6;u++) movePPU();
             }
@@ -117,10 +117,11 @@ void Bus::clockAPU(){
     apu->clock();
 }
 
+//this won't handle any error
 unsigned char Bus::readCartridge(unsigned short address){
-    return 0;
+    return cartridge->readMemory(address);
 }
 
 void Bus::writeCartridge(unsigned short address, unsigned char value){
-
+    cartridge->writeMemory(address, value);
 }
