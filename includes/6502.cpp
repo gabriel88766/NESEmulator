@@ -459,9 +459,6 @@ void CPU::PLA(){
 }
 void CPU::PLP(){
     unsigned char val = Pull();
-    if((val & 0x4) != (val & 0x4)){
-        chI = true;
-    }
     P = (val & 0xCB) | (P & 0x34);
 }
 void CPU::ROL(){
@@ -864,14 +861,10 @@ void CPU::nextInstruction(){
             irq();
         }
     }
-    if(chI){
-        if(getI()) clearI();
-        else setI();
-        chI = false;
-    }
     for(int i=0;i<instructions[opcode].cycles;i++){
         newCycle();
     }
+
     unsigned short opc = PC;
     opcode = bus->readAddress(PC++);
     invoke(instructions[opcode].address_mode, *this);
@@ -884,7 +877,7 @@ void CPU::powerON(){
     S = 0xFD;
     PC = 0x8000;
     total_cycles = 0;
-    isAccumulator = irq_pin = nmi_pin = chI = false;
+    isAccumulator = irq_pin = nmi_pin = false;
     for(int j=0;j<0x800;j++) RAM[j] = 0;
 }
 

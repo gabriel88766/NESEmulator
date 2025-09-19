@@ -75,6 +75,7 @@ public:
     void evaluateScrollX();
     void evaluateScrollY();
     void fillMaps();
+    void reloadAll();
     void changeNametables(unsigned short address, unsigned char value);
     void evaluateSprites(int yy);
     //misc

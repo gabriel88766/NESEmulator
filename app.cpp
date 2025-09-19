@@ -120,7 +120,6 @@ int main(int argc, char** args){
                         if (e.button.x >= button.x && e.button.x < button.x + button.w &&
                             e.button.y >= button.y && e.button.y < button.y + button.h) {
                             // Button clicked!
-                            ppu.printNametables();
                             SDL_PauseAudioDevice(device_id, 1);
                             const char *format[] = {"*.nes"};
                             auto filename = tinyfd_openFileDialog("Select Nes File", NULL, 1, format, "Nes file(.nes)", 0);
@@ -183,7 +182,7 @@ int main(int argc, char** args){
         Uint64 end = SDL_GetPerformanceCounter();
 
         float elapsedMS = (end - start) / (float)SDL_GetPerformanceFrequency() * 1000.0f;
-        cout << 16.666f - elapsedMS << "\n";
+        // cout << 16.666f - elapsedMS << "\n";
         // Cap to 60 FPS
         if(16.666f - elapsedMS > 0) SDL_Delay(floor(16.666f - elapsedMS));
     }

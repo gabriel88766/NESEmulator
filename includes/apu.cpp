@@ -49,8 +49,6 @@ void APU::writeMemory(unsigned short address, unsigned char value){
         } 
         cnt = 0;
         if(value & 0x80){
-            F = false;
-            bus->setIRQ(false);
             sweep();
             lenCounter();
             linearCounter();
@@ -71,7 +69,9 @@ void APU::writeMemory(unsigned short address, unsigned char value){
         len[address >> 2] = len_table[value >> 3];
         if(address == 3 || address == 7){
              phase[address >> 2] = 0;
-             dvp[address >> 2] = ((value >> 4) & 7) + 1;
+        }
+        if(address == 1 || address == 5){
+             dvp[address >> 2] = (((value >> 4) & 7) + 1);
         }
     }
     if(address == 0x8){
@@ -84,12 +84,13 @@ void APU::tick(){
         if(cnt == CYCLES[1] || cnt == CYCLES[4]){
             //Length counter and sweep
             sweep();
-            // decreaseVolume();
+            decreaseVolume();
             lenCounter();
             
         }
         if(cnt != CYCLES[3]){
             //Envelope and linear counter
+            // decreaseVolume();
             linearCounter();
         }
 
@@ -103,12 +104,12 @@ void APU::tick(){
     }else{
         //Envelope and linear counter
         linearCounter();
-        
+        // decreaseVolume();
         if(cnt == CYCLES[1] || cnt == CYCLES[3]){
             //Length counter and sweep
             sweep();
             lenCounter();
-            // decreaseVolume();
+            decreaseVolume();
         }
         if(cnt == CYCLES[3]){
             
@@ -162,7 +163,7 @@ void APU::sweep(){
         if(reg[4*j+1] & 0x80){
             dvp[j]--;
             if(dvp[j] == 0){
-                dvp[j] = ((reg[4*j+1] >> 4) & 7) + 1;
+                dvp[j] = (((reg[4*j+1] >> 4) & 7) + 1);
                 int s = reg[4*j+1] & 7;
                 unsigned short val = ((reg[4*j+3] & 7) << 8) + reg[4*j+2];
                 if(reg[4*j+1] & 8){

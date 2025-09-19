@@ -119,6 +119,9 @@ void Bus::clockAPU(){
     apu->clock();
 }
 
+void Bus::reloadPPU(){
+    ppu->reloadAll();
+}
 //this won't handle any error
 unsigned char Bus::readCartridge(unsigned short address){
     return cartridge->readMemory(address);

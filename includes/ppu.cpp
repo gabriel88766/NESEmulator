@@ -310,6 +310,8 @@ void PPU::evaluateScrollX(){
 void PPU::evaluateScrollY(){
     sy = (((treg & 0x3E0) >> 5) << 3) + ((treg >> 12) & 7);
     if(treg & 0x800) sy += 240;
+    sy++;
+    sy %= 480;
 }
 
 //need to use this function when changed from horizontal to vertical mirrorring
@@ -339,13 +341,21 @@ void PPU::fillMaps(){
     }
 }
 
+//need to be performed after a bank switch
+void PPU::reloadAll(){
+    for(unsigned short addr=0x2000;addr<0x3000;addr++){
+        changeNametables(addr, VRAM[addr]);
+    }
+}
+
+
 void PPU::changeNametables(unsigned short address, unsigned char value){
     if(horizontal){
-        // VRAM[address] = value;
         VRAM[address ^ 0x400] = VRAM[address] = value;
+        address &= ~0x400;
     }else{
-        // VRAM[address] = value;
         VRAM[address ^ 0x800] = VRAM[address] = value;
+        address &= ~0x800;
     }
     if((address & 0x3FF) >= 0x3C0) return;
     int rx = 8 * (address % 32);
@@ -354,8 +364,7 @@ void PPU::changeNametables(unsigned short address, unsigned char value){
     ry += address & 0x800 ? 240 : 0;
     
     unsigned short offset = 16 * value;
-    
-    
+
     for(int j=0;j<8;j++){
         unsigned char bytesl0 = bus->readCartridge(offset+j); 
         unsigned char bytesr0 = bus->readCartridge(offset+j+8);
@@ -367,13 +376,11 @@ void PPU::changeNametables(unsigned short address, unsigned char value){
             unsigned curColor1 = (bytesl1 & (1 << (7-k)))? 1 : 0;
             curColor1 += (bytesr1 & (1 << (7-k)))? 2 : 0;
             if(horizontal){
-                int rf = rx >= 256 ? rx - 256 : rx + 256;
-                nametables0[rf + k][ry + j] = nametables0[rx + k][ry + j] = curColor0;
-                nametables1[rf + k][ry + j] = nametables1[rx + k][ry + j] = curColor1;
+                nametables0[rx + 256 + k][ry + j] = nametables0[rx + k][ry + j] = curColor0;
+                nametables1[rx + 256 + k][ry + j] = nametables1[rx + k][ry + j] = curColor1;
             }else{
-                int rf = ry >= 240 ? ry - 240 : ry + 240;
-                nametables0[rx + k][rf + j] = nametables0[rx + k][ry + j] = curColor0;
-                nametables1[rx + k][rf + j] = nametables1[rx + k][ry + j] = curColor1;
+                nametables0[rx + k][ry + 240 + j] = nametables0[rx + k][ry + j] = curColor0;
+                nametables1[rx + k][ry + 240 + j] = nametables1[rx + k][ry + j] = curColor1;
             }
         }
     }    

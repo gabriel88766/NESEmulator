@@ -128,7 +128,7 @@ void Cartridge::writeMemory(unsigned short address, unsigned char value){
                 else if(header[5] <= 8) val = value & 7;
                 else val = value & 0xF;
                 load(chr_rom, chr_banks + val*0x2000, 0x2000);
-                
+                bus->reloadPPU();
                 break;
             }
         }

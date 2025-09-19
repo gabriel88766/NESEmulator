@@ -16,7 +16,6 @@ private:
     Bus *bus;
     bool irq_pin = false;
     bool nmi_pin = false;
-    bool chI = false;
 public:
     CPU(){
         this->powerON();
