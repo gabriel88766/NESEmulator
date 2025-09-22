@@ -855,9 +855,8 @@ void CPU::nextInstruction(){
     if(nmi_pin){
         nmi_pin = false;
         nmi();
-    }else if(irq_pin){
+    }else if(bus->cartridge->I || bus->apu->F || bus->apu->I){
         if(!getI()){
-            irq_pin = false;//interrupt handled
             irq();
         }
     }

@@ -33,6 +33,7 @@ void audio_callback(void* userdata, Uint8* stream, int length) {
 
 
 int main(int argc, char** args){
+    // freopen("testROM/logs", "w", stdout);
     if (SDL_Init( SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) < 0) {
 		cout << "Error initializing SDL: " << SDL_GetError() << endl;
 		return 1;
@@ -43,12 +44,10 @@ int main(int argc, char** args){
     spec.freq = (int)sampleRate;                // Sample rate (Hz)
     spec.format = AUDIO_S16SYS;        // 16-bit signed samples
     spec.channels = 1;                 // Mono sound
-    spec.samples = 512;               // Buffer size (number of samples per callback)
+    spec.samples = 256;               // Buffer size (number of samples per callback)
     spec.callback = audio_callback;    // Callback function
     SDL_AudioDeviceID device_id = SDL_OpenAudioDevice(NULL, 0, &spec, NULL, 0);
     
-    
-    SDL_PauseAudioDevice(device_id, 0); // start audio
 
 
     SDL_Texture* texture = NULL;
@@ -65,8 +64,6 @@ int main(int argc, char** args){
 
 
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STREAMING, 256, 240);
-
-    SDL_PauseAudio(0);
 
     
 
@@ -140,6 +137,8 @@ int main(int argc, char** args){
         bus.button2 = 0xFF;
         // Do physics loop
         if(loaded){
+            //test apu
+            long long int cyc = cpu.total_cycles;
             while(!ppu.okVblank){
                 cpu.nextInstruction();
             }

@@ -39,3 +39,6 @@ target_link_libraries(emuNES PRIVATE SDL2::SDL2main SDL2::SDL2 )
 
 # Set C++ standard
 target_compile_features(emuNES PRIVATE cxx_std_17)
+
+#Optimize
+target_compile_options(emuNES PRIVATE -O2)

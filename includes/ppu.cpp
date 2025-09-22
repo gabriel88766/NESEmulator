@@ -87,14 +87,7 @@ Color color_pallete_1[] = {
 
 
 PPU::PPU(){
-    memset(VRAM, 0, sizeof(VRAM));
-    memset(OAM, 0, sizeof(OAM));
-    memset(isopaque, 0, sizeof(isopaque));
-    memset(opaque, 0, sizeof(opaque));
-    // memset(nametables, 0, sizeof(nametables));
-    memset(regs, 0, sizeof(regs));
-    memset(framebuffer, 0, sizeof(framebuffer));
-    // regs[2] = 0xA0;
+    powerON();
 }
 
 void PPU::connectBus(Bus *bus){
@@ -117,7 +110,6 @@ void PPU::writeMemory(unsigned short address, unsigned char value){
 void PPU::writeOAM(unsigned char value){
     OAM[regs[3]++] = value;
 }
-
 
 //regs functions
 void PPU::PPUCTRL(){
@@ -173,22 +165,23 @@ void PPU::PPUADDR(){
     else{
         if(bus->getCycles() >= 29658){
             if(wreg == 0){
+                int ob = regs[7] & 0x10;
                 regs[7] = value; //high byte
                 treg &= 0xFF;
                 treg |= (value << 8) & 0x3F00;
+                if((regs[7] & 0x10) == 0x10 && ob == 0) bus->cartridge->Clockmm3();
             } else{
                 regs[8] = value; //low byte
                 treg &= 0x7F00;
                 treg |= value;
                 evaluateScrollY();
-                sy -= yy;
             }
             wreg ^= 1;
         }
     }
 }
 void PPU::PPUDATA(){
-    int inc = regs[0] & 0x4 ? 32 : 1;// : 32;
+    int inc = regs[0] & 0x4 ? 32 : 1;
     unsigned short address = regs[7];
     address <<= 8;
     address |= regs[8];
@@ -205,8 +198,6 @@ void PPU::PPUDATA(){
         }else{
             buffer = VRAM[address & 0x2FFF];
             retVal = (VRAM[address & 0x3F1F] & 0x3F) | (openbus & 0xC0);
-            // if(!(address & 3)) retVal = buffer = VRAM[address & 0x3F0F];
-            // else retVal = buffer = VRAM[address & 0x3F1F];
         }
         bus_set = bus->getCycles();
         openbus = retVal;
@@ -214,19 +205,30 @@ void PPU::PPUDATA(){
         if(address < 0x2000){
             bus->writeCartridge(address, value);
         }else if(address < 0x3000){
-            changeNametables(address, value);
+            if(horizontal){
+                VRAM[address ^ 0x400] = VRAM[address] = value;
+            }else{
+                VRAM[address ^ 0x800] = VRAM[address] = value;
+            }
         }else if(address < 0x3F00){
-            changeNametables(address & 0x2FFF, value);
+            address &= 0x2FFF;
+            if(horizontal){
+                VRAM[address ^ 0x400] = VRAM[address] = value;
+            }else{
+                VRAM[address ^ 0x800] = VRAM[address] = value;
+            }
         }else{
             if(!(address & 3)) VRAM[address & 0x3F0F] = VRAM[0x10 | (address & 0x3F0F)] = value & 0x3F;
             else VRAM[address & 0x3F1F] = value & 0x3F;
         }
     }
 
-
+    int ob = regs[7] & 0x10;
     unsigned char nv = regs[8] + inc;
     if(nv < regs[8]) regs[7]++;
     regs[8] = nv; 
+    if((regs[7] & 0x10) == 0x10 && ob == 0) bus->cartridge->Clockmm3();
+
 }
 
 
@@ -251,36 +253,55 @@ void PPU::move(){
     if(xx == 341){
         xx = 0;
         yy++;
+        sy++;
     }
     if(yy == 262){
         yy = 0;
     }
     if(xx < 256 && yy < 240){
         if(xx == 0) {evaluateScrollX(), evaluateSprites(yy);}
-        if(xx == 0 && yy == 0) evaluateScrollY();
+        if(xx == 0 && yy == 0){
+            evaluateScrollY();
+        }
         int cx = xx + sx;
-        int cy = yy + sy;
+        int cy = sy;
         if(cx >= 512) cx -= 512;
         if(cy >= 480) cy -= 480;
-        int tb;
-        if((regs[0] & 0x10)) tb = nametables1[cx][cy];
-        else tb = nametables0[cx][cy];
+        //Background
+        unsigned short address = 0x2000;
+        if(cx >= 256) address += 0x400;
+        if(cy >= 240) address += 0x800;
+        address += (cx & 0xFF) >> 3;
+        address += ((cy >= 240 ? cy - 240 : cy) >> 3) << 5;
+        unsigned short offset = 16 * VRAM[address];
+        if((regs[0] & 0x10)) offset += 0x1000;
+        int jj = cy & 7;
+        int kk = cx & 7;
+        unsigned char bytesl = bus->readCartridge(offset+jj); 
+        unsigned char bytesr = bus->readCartridge(offset+jj+8);
+        int cl = ((bytesl & (1 << (7-kk)))? 1 : 0) + ((bytesr & (1 << (7-kk)))? 2 : 0);
         int pal = (VRAM[mp[cx][cy]] >> mp2[cx][cy]) & 3;
-        unsigned short bg = tb ?  0x3F00 + pal * 4 + tb : 0x3F00;
-
+        unsigned short bg = cl ?  0x3F00 + pal * 4 + cl : 0x3F00;
         if(xx < 8 && (!(regs[1] & 0x2))) bg = 0x3F00;
         if(!(regs[1] & 8)) bg = 0x3F00;
-        framebuffer[xx][yy] = color_pallete_1[VRAM[bg]];
-        if(bg != 0x3F00 && sprzr[xx]){
-            regs[2] |= 0x40;
+
+ 
+        //Sprites
+        if(bg != 0x3F00 && sprzr[xx] && yy < 239){
+            if(lzhit == 0) lzhit = 257;
         }
+        if(lzhit){
+            lzhit--;
+            if(lzhit == 0){  regs[2] |= 0x40; }
+        }
+        unsigned short res = bg;
         for(auto [cl, hid] : spr[xx]){
-            if(hid){
-                if(bg == 0x3F00 && cl != 0x3F00) framebuffer[xx][yy] = color_pallete_1[VRAM[cl]];
-            }else{
-                if(cl != 0x3F00) framebuffer[xx][yy] = color_pallete_1[VRAM[cl]];
+            if(cl != 0x3F00){
+                if(hid && bg != 0x3F00) res = bg;
+                else res = cl;
             }
         }
+        framebuffer[xx][yy] = color_pallete_1[VRAM[res]];
     }
 
     if(yy == 241 && xx == 1){
@@ -291,6 +312,9 @@ void PPU::move(){
         fillMaps();
         if(bus_set + 50000 < bus->getCycles()) openbus = 0;
         okVblank = true;
+    }
+    if(xx == 260 && (yy <= 240)){
+        if((regs[1] & 0x18)) bus->cartridge->Clockmm3();
     }
     if(yy == 261 && xx == 339){
         if(even){
@@ -314,7 +338,7 @@ void PPU::evaluateScrollY(){
     sy %= 480;
 }
 
-//need to use this function when changed from horizontal to vertical mirrorring
+//maps to enhance performance.
 void PPU::fillMaps(){
     for(unsigned short address = 0x2000; address <= 0x2FFF; address++){
         if((address & 0x3FF) >= 0x3C0) continue;
@@ -339,51 +363,6 @@ void PPU::fillMaps(){
             }
         }    
     }
-}
-
-//need to be performed after a bank switch
-void PPU::reloadAll(){
-    for(unsigned short addr=0x2000;addr<0x3000;addr++){
-        changeNametables(addr, VRAM[addr]);
-    }
-}
-
-
-void PPU::changeNametables(unsigned short address, unsigned char value){
-    if(horizontal){
-        VRAM[address ^ 0x400] = VRAM[address] = value;
-        address &= ~0x400;
-    }else{
-        VRAM[address ^ 0x800] = VRAM[address] = value;
-        address &= ~0x800;
-    }
-    if((address & 0x3FF) >= 0x3C0) return;
-    int rx = 8 * (address % 32);
-    int ry = 8 * ((address & 0x3FF) / 32);
-    rx += address & 0x400 ? 256 : 0;
-    ry += address & 0x800 ? 240 : 0;
-    
-    unsigned short offset = 16 * value;
-
-    for(int j=0;j<8;j++){
-        unsigned char bytesl0 = bus->readCartridge(offset+j); 
-        unsigned char bytesr0 = bus->readCartridge(offset+j+8);
-        unsigned char bytesl1 = bus->readCartridge(offset+0x1000 +j); 
-        unsigned char bytesr1 = bus->readCartridge(offset+0x1000 +j+8);
-        for(int k=0; k < 8; k++){
-            unsigned curColor0 = (bytesl0 & (1 << (7-k)))? 1 : 0;
-            curColor0 += (bytesr0 & (1 << (7-k)))? 2 : 0;
-            unsigned curColor1 = (bytesl1 & (1 << (7-k)))? 1 : 0;
-            curColor1 += (bytesr1 & (1 << (7-k)))? 2 : 0;
-            if(horizontal){
-                nametables0[rx + 256 + k][ry + j] = nametables0[rx + k][ry + j] = curColor0;
-                nametables1[rx + 256 + k][ry + j] = nametables1[rx + k][ry + j] = curColor1;
-            }else{
-                nametables0[rx + k][ry + 240 + j] = nametables0[rx + k][ry + j] = curColor0;
-                nametables1[rx + k][ry + 240 + j] = nametables1[rx + k][ry + j] = curColor1;
-            }
-        }
-    }    
 }
 
 void PPU::evaluateSprites(int yy){
@@ -450,26 +429,6 @@ void PPU::evaluateSprites(int yy){
         }
     }
 }
-
-
-void PPU::printNametables(){
-    Image img;
-    img.makeImage(512, 480);
-    int tb;
-    
-    for(int y=0;y<480;y++){
-        for(int x = 0; x < 512; x++){
-            if((regs[0] & 0x10)) tb = nametables1[x][y];
-            else tb = nametables0[x][y];
-            int pal = (VRAM[mp[x][y]] >> mp2[x][y]) & 3;
-            unsigned short bg = tb ?  0x3F00 + pal * 4 + tb : 0x3F00;
-            Color c = color_pallete_1[VRAM[bg]];
-            img.setPixel(x, y, c);
-        }
-    }
-    img.writeImage("debug.bmp");
-}
-
 
 
 void PPU::powerON(){

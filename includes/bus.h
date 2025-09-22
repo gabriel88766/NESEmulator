@@ -13,15 +13,15 @@ class APU;
 
 class Bus{
 private:
-    CPU *cpu;
-    Cartridge *cartridge;
-    PPU *ppu;
-    APU *apu;
     int cb = 0;
     bool strobe;
     unsigned char regbut1;
     unsigned char regbut2;
 public:
+    CPU *cpu;
+    Cartridge *cartridge;
+    PPU *ppu;
+    APU *apu;
     unsigned char open;
     unsigned char last_value;
     unsigned char button1;
@@ -40,7 +40,6 @@ public:
     void movePPU();
     void loadCHR(unsigned char *data, int beg, int end);
     void clockAPU();
-    void reloadPPU();
     unsigned char readCartridge(unsigned short address);
     void writeCartridge(unsigned short address, unsigned char value);
 };

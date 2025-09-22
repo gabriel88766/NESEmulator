@@ -44,6 +44,8 @@ private:
     unsigned short xreg;
     unsigned long long int spset = 0; //unused
     char even = 1;
+    bool hit = false;
+    int lzhit = 0;
 public:
     unsigned char VRAM[0x4000]; //exposed, so cartridge can write via bus
     bool okVblank = false;
@@ -75,14 +77,8 @@ public:
     void evaluateScrollX();
     void evaluateScrollY();
     void fillMaps();
-    void reloadAll();
-    void changeNametables(unsigned short address, unsigned char value);
     void evaluateSprites(int yy);
     //misc
-    void setRAM();
-    //debug - get the current nametables printed using the format RGB
-    void printNametables();
     void powerON();
 };
-// (obj.*function)();
 #endif
