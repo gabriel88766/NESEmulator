@@ -115,6 +115,7 @@ void PPU::writeOAM(unsigned char value){
 void PPU::PPUCTRL(){
     if(is_read) retVal = openbus;
     else if(bus->getCycles() >= 29658){
+        
         if(((regs[0] & 0x80) == 0) && (value & 0x80) && (regs[2] & 0x80)) bus->setNMI();
         regs[0] = value;
         treg &= 0x73FF;
@@ -166,7 +167,6 @@ void PPU::PPUADDR(){
     if(is_read) retVal = openbus;
     else{
         if(bus->getCycles() >= 29658){
-            printf("write : wreg = %d, value = %2X\n", wreg, value);
             if(wreg == 0){
                 int ob = regs[7] & 0x10;
                 regs[7] = value; //high byte
@@ -177,7 +177,7 @@ void PPU::PPUADDR(){
                 regs[8] = value; //low byte
                 treg &= 0x7F00;
                 treg |= value;
-                evaluateScrollY();
+                vreg = treg;
             }
             wreg ^= 1;
         }
@@ -185,53 +185,47 @@ void PPU::PPUADDR(){
 }
 void PPU::PPUDATA(){
     int inc = regs[0] & 0x4 ? 32 : 1;
-    unsigned short address = regs[7];
-    address <<= 8;
-    address |= regs[8];
-    address &= 0x3FFF;
+    unsigned short addr = vreg & 0x3FFF;
     if(is_read){
         retVal = buffer;
-        if(address < 0x2000){
-            buffer = bus->readCartridge(address);
-        }else if(address < 0x3000){
-            buffer = VRAM[address];
+        if(addr < 0x2000){
+            buffer = bus->readCartridge(addr);
+        }else if(addr < 0x3000){
+            buffer = VRAM[addr];
             
-        }else if(address < 0x3F00){
-            buffer = VRAM[address & 0x2FFF]; //mirror
+        }else if(addr < 0x3F00){
+            buffer = VRAM[addr & 0x2FFF]; //mirror
         }else{
-            buffer = VRAM[address & 0x2FFF];
-            retVal = (VRAM[address & 0x3F1F] & 0x3F) | (openbus & 0xC0);
+            buffer = VRAM[addr & 0x2FFF];
+            retVal = (VRAM[addr & 0x3F1F] & 0x3F) | (openbus & 0xC0);
         }
         bus_set = bus->getCycles();
         openbus = retVal;
     }else{
-        if(address < 0x2000){
-            bus->writeCartridge(address, value);
-        }else if(address < 0x3000){
+        if(addr < 0x2000){
+            bus->writeCartridge(addr, value);
+        }else if(addr < 0x3000){
             if(horizontal){
-                VRAM[address ^ 0x400] = VRAM[address] = value;
+                VRAM[addr ^ 0x400] = VRAM[addr] = value;
             }else{
-                VRAM[address ^ 0x800] = VRAM[address] = value;
+                VRAM[addr ^ 0x800] = VRAM[addr] = value;
             }
-        }else if(address < 0x3F00){
-            address &= 0x2FFF;
+        }else if(addr < 0x3F00){
+            addr &= 0x2FFF;
             if(horizontal){
-                VRAM[address ^ 0x400] = VRAM[address] = value;
+                VRAM[addr ^ 0x400] = VRAM[addr] = value;
             }else{
-                VRAM[address ^ 0x800] = VRAM[address] = value;
+                VRAM[addr ^ 0x800] = VRAM[addr] = value;
             }
         }else{
             
-            if(!(address & 3)) VRAM[address & 0x3F0F] = VRAM[0x10 | (address & 0x3F0F)] = value & 0x3F;
-            else VRAM[address & 0x3F1F] = value & 0x3F;
+            if(!(addr & 3)) VRAM[addr & 0x3F0F] = VRAM[0x10 | (addr & 0x3F0F)] = value & 0x3F;
+            else VRAM[addr & 0x3F1F] = value & 0x3F;
         }
     }
-
-    int ob = regs[7] & 0x10;
-    unsigned char nv = regs[8] + inc;
-    if(nv < regs[8]) regs[7]++;
-    regs[8] = nv; 
-    if((regs[7] & 0x10) == 0x10 && ob == 0) bus->cartridge->Clockmm3();
+    int ob = vreg & 0x1000;
+    vreg += inc;
+    if((vreg & 0x1000) == 0x10 && ob == 0) bus->cartridge->Clockmm3();
 
 }
 
@@ -257,16 +251,14 @@ void PPU::move(){
     if(xx == 341){
         xx = 0;
         yy++;
-        sy++;
+        // sy++;
     }
     if(yy == 262){
-        printf("\n");
         yy = 0;
     }
     if(xx < 256 && yy < 240){
-        if(xx == 0) {evaluateScrollX(), evaluateSprites(yy);}
-        if(xx == 0 && yy == 0){
-            evaluateScrollY();
+        if(xx == 0) {
+            evaluateScroll(), evaluateSprites(yy);
         }
         int cx = xx + sx;
         int cy = sy;
@@ -293,12 +285,12 @@ void PPU::move(){
  
         //Sprites
         if(bg != 0x3F00 && sprzr[xx] && yy < 239){
-            regs[2] |= 0x40; 
-            // if(lzhit == 0) lzhit = 257;
+            // regs[2] |= 0x40; 
+            if(lzhit == 0) lzhit = 257;
         }
         if(lzhit){
-            // lzhit--;
-            // if(lzhit == 0){  regs[2] |= 0x40; }
+            lzhit--;
+            if(lzhit == 0){  regs[2] |= 0x40; }
         }
         unsigned short res = bg;
         for(auto [cl, hid] : spr[xx]){
@@ -309,7 +301,25 @@ void PPU::move(){
         }
         framebuffer[xx][yy] = color_pallete_1[VRAM[res]];
     }
-
+    if(xx == 256 && (yy <= 240 || yy >= 261) && (regs[1] & 0x18)){
+        int val = (0x7000 & vreg) >> 12;
+        if(val == 7){
+            vreg &= 0x0FFF;
+            val = (vreg & 0x3E0) >> 5;
+            if(val == 29){
+                val = 0;
+                vreg ^= 0x800;
+            }else if(val == 31){
+                val = 0;
+            }else{
+                val += 1;
+            }
+            vreg &= ~ 0x3E0;
+            vreg |= val << 5;
+        }else{
+            vreg += 0x1000;
+        }
+    }
     if(yy == 241 && xx == 1){
         setVblank();
     }
@@ -318,6 +328,7 @@ void PPU::move(){
         fillMaps();
         if(bus_set + 50000 < bus->getCycles()) openbus = 0;
         okVblank = true;
+        if(regs[1] & 0x18) vreg = treg;
     }
     if(xx == 260 && (yy <= 240)){
         if((regs[1] & 0x18)) bus->cartridge->Clockmm3();
@@ -332,14 +343,11 @@ void PPU::move(){
     if(yy == 261 && xx >= 257 && xx <= 320) regs[3] = 0;
 }
 
-void PPU::evaluateScrollX(){
+void PPU::evaluateScroll(){
     sx = ((treg & 0x1F) << 3) + (xreg & 7);
     if(treg & 0x400) sx += 256;
-}
-
-void PPU::evaluateScrollY(){
-    sy = (((treg & 0x3E0) >> 5) << 3) + ((treg >> 12) & 7);
-    if(treg & 0x800) sy += 240;
+    sy = (((vreg & 0x3E0) >> 5) << 3) + ((vreg >> 12) & 7);
+    if(vreg & 0x800) sy += 240;
     sy %= 480;
 }
 

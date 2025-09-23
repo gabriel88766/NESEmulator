@@ -75,8 +75,7 @@ public:
     void move();
 
     //print frame
-    void evaluateScrollX();
-    void evaluateScrollY();
+    void evaluateScroll();
     void fillMaps();
     void evaluateSprites(int yy);
     //misc
