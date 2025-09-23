@@ -1,6 +1,14 @@
-#include "apu.h"
+//trying to make a cycle perfect APU.
+
+#include "apu2.h"
 #include <iostream>
 #include <math.h>
+
+const double freq = 1760091.00;
+const double rate = 256/44100.00;
+const int tt = 20550;
+const int xsmp = 512;
+
 
 APU::APU(){
     reset();
@@ -10,8 +18,8 @@ void APU::reset(){
     for(int i=0;i<0x20;i++) reg[i] = 0;
     cnt = 0;
     for(int i=0;i<5;i++){
-        en[i] = false;
-        phase[i] = len[i] = vol[i] = dvp[i] = envp[i] = 0;
+        en[i] = true;
+        place[i] = len[i] = vol[i] = dvp[i] = envp[i] = 0;
     }
     for(int j=0;j<4096;j++){
         rng[j] = rand() > 16383 ? 1 : 0;
@@ -43,7 +51,6 @@ unsigned char APU::readMemory(unsigned short address){
 void APU::writeMemory(unsigned short address, unsigned char value){
     reg[address] = value;
     if(address == 0x00 || address == 0x04 || address == 0xC){
-        
         if(!(value & 0x10)){
             vol[address >> 2] = 0xF;
             envp[address >> 2] = (value & 0xF) + 1; 
@@ -59,7 +66,7 @@ void APU::writeMemory(unsigned short address, unsigned char value){
             sweep();
             lenCounter();
             linearCounter();
-            decreaseVolume();
+            envelope();
         }
     }
     if(address == 0x15){
@@ -95,33 +102,37 @@ void APU::writeMemory(unsigned short address, unsigned char value){
 
 
     if(address == 1 || address == 5){
-        
-        if(!(reg[(address >> 2) << 2] & 0x10)) vol[address >> 2] = 0xF;
-        else vol[address >> 2] = (reg[(address >> 2) << 2] & 0xF);
-        dvp[address >> 2] = (((value >> 4) & 7) + 1);
+        rel[address >> 2] = true;
+        dvp[address >> 2] = ((value >> 4) & 7);
     }
+    //3 7 B F
     if(address <= 0xF && ((address & 3) == 3) && en[address >> 2]){
         len[address >> 2] = len_table[value >> 3] + 1;
         if(address == 3 || address == 7){
-             phase[address >> 2] = 0;
+            tp[address >> 2] = 2*(((reg[address] & 7) << 8) + reg[address - 1]) + 1; //sequencer
+            place[address >> 2] = 0; //also sequencer
+            if(!(value & 0x10)){ //envelope
+                vol[address >> 2] = 0xF;
+                envp[address >> 2] = (value & 0xF) + 1; 
+            }else vol[address >> 2] = value & 0xF;
         }
-        if(address == 0xB){
-            relT = true;
-        }
+        // if(address == 0xB){
+        //     relT = true;
+        // }
     }
     
     if(address == 0x8){
-        len2 = (value & 0x7F) + 1;
+        len2 = value & 0x7F;
         if(value & 0x80) relT = true;
     }
     
 }
 
 void APU::tick(){
-    if(relT) {
-        len2 = (reg[0x8] & 0x7F) + 1;
-        if(!(reg[0x8] & 0x80)) relT = false;
-    }
+    // if(relT) {
+    //     len2 = reg[0x8] & 0x7F;
+    //     if(!(reg[0x8] & 0x80)) relT = false;
+    // }
     if(reg[0x17] & 0x80){
         if(cnt == CYCLES[1] || cnt == CYCLES[4]){
             //Length counter and sweep
@@ -130,33 +141,23 @@ void APU::tick(){
         }
         if(cnt != CYCLES[3]){
             //Envelope and linear counter
-            decreaseVolume();
+            envelope();
             linearCounter();
         }
-
-        
         if(cnt == CYCLES[4]){
-            
             cnt = 0;
-            F = false;
-            bus->setIRQ(false);
         }
     }else{
         //Envelope and linear counter
         linearCounter();
-        decreaseVolume();
+        envelope();
         if(cnt == CYCLES[1] || cnt == CYCLES[3]){
             //Length counter and sweep
             sweep();
             lenCounter();
         }
         if(cnt == CYCLES[3]){
-            
-            //interruption
-            F = false;
-            bus->setIRQ(false);
             if(!(reg[0x17] & 0x40)){
-                bus->setIRQ(true);
                 F = true;
             }
             cnt = 0;
@@ -164,44 +165,18 @@ void APU::tick(){
     }
 }
 
-void APU::clock(){
-    cnt++;
-    if(cntdmc != 0) cntdmc--;
-    if(cntdmc == 0){
-        cntdmc = dmc_table[reg[0x10] & 0xF];
-        if(en[4]){ bus->cpu->newCycle(); bus->cpu->newCycle(); bus->cpu->newCycle();}
-        if(len[4] >= 1){
-            
-            len[4]--;
-            if(len[4] == 0){
-                if(reg[0x10] & 0x40){
-                    len[4] = (reg[0x13] << 4) + 1;
-                }
-                if(reg[0x10] & 0x80){
-                    I = true;
-                }
-            }
-        }
-    }
-    
-    for(int j=0;j<5;j++){
-        if(CYCLES[j] == cnt) tick();
-    }
 
-}
 
 void APU::linearCounter(){
-     if(len2 != 0) len2--;
+    if(len2 != 0) len2--;
 }
 
-void APU::decreaseVolume(){
+void APU::envelope(){
     for(int j=0;j<=3;j++){
         if(j == 2) continue;
         if(!(reg[4*j] & 0x10)){
-            //v decrement'
-            envp[j]--;
             if(envp[j] == 0){
-                envp[j] = (reg[4*j] & 0xF) + 1;  
+                envp[j] = (reg[4*j] & 0xF);  
                 if(vol[j] == 0){
                     if(reg[4*j] & 0x20){
                         vol[j] |= 0xF;
@@ -209,7 +184,7 @@ void APU::decreaseVolume(){
                 }else{
                     vol[j]--;
                 }
-            }
+            }else envp[j]--;
         }
     }
 }
@@ -217,7 +192,6 @@ void APU::decreaseVolume(){
 void APU::sweep(){
     for(int j=0;j<=1;j++){
         if(reg[4*j+1] & 0x80){
-            dvp[j]--;
             if(dvp[j] == 0){
                 dvp[j] = (((reg[4*j+1] >> 4) & 7) + 1);
                 int s = reg[4*j+1] & 7;
@@ -235,6 +209,11 @@ void APU::sweep(){
                 reg[4*j+3] |= (val >> 8);
             }
         }
+
+        if(dvp[j] == 0 || rel[j]){
+            rel[j] = false;
+            dvp[j] = (reg[4*j+1] & 0x70) >> 4;
+        }else dvp[j]--;
     }
 }
 
@@ -248,32 +227,6 @@ void APU::lenCounter(){
         if(len[v] == 0) continue;
         len[v]--;
     }
-}
-
-void APU::Pulse(double *buffer, int length, double rate, int num){
-    if(!en[num]) return;
-    if(!len[num]) return;
-    int t = ((reg[4*num + 3] & 7) << 8) + reg[4*num+2];
-    if(t < 8) return;
-    double freq =  1789773.0/(16.0 * (t+1));
-    double phase_inc =  (twoPI * freq) / rate;
-    int df = (reg[4*num] & 0xC0) >> 6; 
-    double duty = df * 0.25;
-    if(df == 0) duty = 0.125;
-    for(int j=0;j<length;j++){
-        if(phase[num] >= twoPI * duty) buffer[j] += vol[num]; 
-        phase[num] += phase_inc;
-        if (phase[num] >= twoPI)
-            phase[num] -= twoPI;
-    }
-}
-
-void APU::Pulse1(double *buffer, int length, double rate){
-    Pulse(buffer, length, rate, 0);
-}
-
-void APU::Pulse2(double *buffer, int length, double rate){
-    Pulse(buffer, length, rate, 1);
 }
 
 void APU::Triangle(double *buffer, int length, double rate){
@@ -335,30 +288,128 @@ void APU::DMC(double *buffer, int length, double rate){
             }
         }
 
-        buffer[j] += outp / 2263800000000.0;
+        buffer[j] += outp / 22638.0;
     }
     // int len = 
 }
-//change as your needs!
+
+
+void APU::resample(){
+    std::vector<double> vx(xsmp);
+    double step = (double)csmp.size() / xsmp;
+    double cx = 0;
+    for(int j=0;j<xsmp;j++){
+        double cur = (ceil(cx) - cx) * csmp[(int)cx];
+        cur += (cx + step - floor(cx + step)) * csmp[(int)floor(cx + step)];
+        for(int u=ceil(cx); u<floor(cx + step); u++){
+            cur += csmp[u];
+        }
+        cx += step;
+        cur /= step;
+        vx[j] = cur;
+    }
+    samples.push(vx);
+    csmp.clear();
+}
+
 void APU::getSampling(short *buffer, int length, double rate){
     
-    //pulse1 pulse2 triangle
-    for(int j=0;j<length;j++) aux[j] = aux2[j] = 1e-9;
-    Pulse1(aux, length, rate);
-    Pulse2(aux, length, rate);
-    for(int j=0;j<length;j++){
-        aux2[j] += 95.88 / (8128.0/aux[j] + 100);
+    if(samples.size() >= 3){
+        auto smpl = samples.front();
+        samples.pop();
+        for(int j=0;j<length;j++){
+            buffer[j] = lotp = smpl[j] * 32767;
+        }
+    }else{
+        for(int j=0;j<length;j++){
+            buffer[j] = lotp;
+        }
     }
-    for(int j=0;j<length;j++) aux[j] = 1e-9;
-    Triangle(aux, length, rate);
-    Noise(aux, length, rate);
-    DMC(aux, length, rate);
-    for(int j=0;j<length;j++){
-        aux2[j] += 159.79 / (1.0/aux[j] + 100);
-    }
+
+
+    // //pulse1 pulse2 triangle
+    // for(int j=0;j<length;j++) aux[j] = aux2[j] = 1e-9;
+    // Pulse1(aux, length, rate);
+    // Pulse2(aux, length, rate);
+    // for(int j=0;j<length;j++){
+    //     aux2[j] += 95.88 / (8128.0/aux[j] + 100);
+    // }
+    // for(int j=0;j<length;j++) aux[j] = 1e-9;
+    // Triangle(aux, length, rate);
+    // Noise(aux, length, rate);
+    // DMC(aux, length, rate);
+    // for(int j=0;j<length;j++){
+    //     aux2[j] += 159.79 / (1.0/aux[j] + 100);
+    // }
     
-    for(int j=0;j<length;j++){
-        buffer[j] = aux2[j] * 32767;
+    // for(int j=0;j<length;j++){
+    //     buffer[j] = aux2[j] * 32767;
+    // }
+
+}
+
+
+void APU::clock(){
+    // cnt++;
+    // if(cntdmc != 0) cntdmc--;
+    // if(cntdmc == 0){
+    //     cntdmc = dmc_table[reg[0x10] & 0xF];
+    //     if(en[4]){ bus->cpu->newCycle(); bus->cpu->newCycle(); bus->cpu->newCycle();}
+    //     if(len[4] >= 1){
+            
+    //         len[4]--;
+    //         if(len[4] == 0){
+    //             if(reg[0x10] & 0x40){
+    //                 len[4] = (reg[0x13] << 4) + 1;
+    //             }
+    //             if(reg[0x10] & 0x80){
+    //                 I = true;
+    //             }
+    //         }
+    //     }
+    // }
+    double potp = 0;
+    for(int j=0;j<=1;j++){
+        int tv = ((reg[4*j + 3] & 7) << 8) + reg[4*j + 2];
+        if(tv < 8) continue;
+        if(len[j] != 0 && en[j]) potp += duty_table[(reg[4*j] & 0xC0) >> 6][place[j]] * vol[j];
+        
+        if(tp[j] == 0){
+            tp[j] = 2*tv + 1;
+            place[j]++;
+            if(place[j] == 8){
+                place[j] = 0;
+            }
+        }else tp[j]--;
+    }
+    double tnd = 0.0001;
+    //Triangle
+    int tv = ((reg[0xB] & 7) << 8) + reg[0xA];
+    if(en[2] && len[2] && len2 && tv >= 4){ //avoid "hurting" speakers = tv >= 4
+        tnd += lt = triangle_table[place[2]] / 4227.0;
+
+        //this is just to keep the phase
+        if(tp[2] == 0){
+        tp[2] = 2*tv + 1;
+        place[2]++;
+        if(place[2] == 32){
+            place[2] = 0;
+        }
+        }else tp[2]--;
+    }else tnd += lt;
+    
+
+
+    double res = /*95.88/((8128.0/potp) + 100) +*/ 159.79/((1/tnd) + 100);
+    csmp.push_back(res);
+    
+    if(csmp.size() >= tt){
+        resample();
+    }
+
+
+    for(int j=0;j<5;j++){
+        if(CYCLES[j] == cnt) tick();
     }
 
 }

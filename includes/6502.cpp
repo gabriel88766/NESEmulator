@@ -459,7 +459,7 @@ void CPU::PLA(){
 }
 void CPU::PLP(){
     unsigned char val = Pull();
-    P = (val & 0xCB) | (P & 0x34);
+    P = (val & 0xCF) | (P & 0x30);
 }
 void CPU::ROL(){
     unsigned char valueShifted, result;
@@ -882,7 +882,7 @@ void CPU::powerON(){
 
 void CPU::reset(){
     setI();
-    S -= 3;
+    S = 0xFD;
     P |= 0x04;
     PC = bus->readAddress(0xFFFD) << 8;
     PC |= bus->readAddress(0xFFFC);

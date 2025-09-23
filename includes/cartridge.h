@@ -16,7 +16,6 @@ private:
     unsigned char *chr_banks;
     unsigned char *chr_ram;
     unsigned char mapper;
-    void load(unsigned char *dst, unsigned char *src, int sz);
     //for mapper 4 and ... ???
     
     bool chr = false;

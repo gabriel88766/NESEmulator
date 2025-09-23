@@ -12,6 +12,7 @@ set(SOURCES
     includes/ppu.cpp
     includes/cartridge.cpp
     includes/apu.cpp
+    # includes/apu2.cpp
     includes/imageMaker.cpp
     vendored/tinyfiledialogs/tinyfiledialogs.c
 )
@@ -22,6 +23,7 @@ set(HEADERS
     includes/ppu.h
     includes/cartridge.h
     includes/apu.h
+    # includes/apu2.h
     includes/imageMaker.h
     vendored/tinyfiledialogs/tinyfiledialogs.h
 )

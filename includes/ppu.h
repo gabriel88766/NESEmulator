@@ -38,6 +38,7 @@ private:
     long long int bus_set = -1;
     int bst;
     int wreg = 0;
+    unsigned short vreg = 0;
     int xx = 0, yy = 0;
     int sx = 0, sy = 0;
     unsigned short treg;

@@ -13,10 +13,6 @@ Cartridge::~Cartridge(){
     delete[] chr_rom;
 }
 
-void Cartridge::load(unsigned char *dst, unsigned char *src, int sz){
-    memcpy(dst, src, sz);
-}
-
 void Cartridge::connectBus(Bus *bus){
     this->bus = bus;
 }
@@ -239,7 +235,7 @@ void Cartridge::Clockmm3(){
         if(cnt4 == 0 && irq4 == true) I = true;
     }else{
         cnt4 = rlirq4;
-        I = false;
+        if(irq4 && cnt4 == 0) I = true;
     }
     
     

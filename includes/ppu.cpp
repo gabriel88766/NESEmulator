@@ -126,10 +126,12 @@ void PPU::PPUMASK(){
     else if(bus->getCycles() >= 29658) regs[1] = value;
 }
 void PPU::PPUSTATUS(){
-    openbus = retVal = regs[2] | (0x1F & openbus);
-    bus_set = bus->getCycles();
-    regs[2] &= 0x7F;
-    wreg = 0;
+    if(is_read){
+        openbus = retVal = regs[2] | (0x1F & openbus);
+        bus_set = bus->getCycles();
+        regs[2] &= 0x7F;
+        wreg = 0;
+    }else openbus = value;
 }
 void PPU::OAMADDR(){
     if(is_read) retVal = openbus;
@@ -164,6 +166,7 @@ void PPU::PPUADDR(){
     if(is_read) retVal = openbus;
     else{
         if(bus->getCycles() >= 29658){
+            printf("write : wreg = %d, value = %2X\n", wreg, value);
             if(wreg == 0){
                 int ob = regs[7] & 0x10;
                 regs[7] = value; //high byte
@@ -218,6 +221,7 @@ void PPU::PPUDATA(){
                 VRAM[address ^ 0x800] = VRAM[address] = value;
             }
         }else{
+            
             if(!(address & 3)) VRAM[address & 0x3F0F] = VRAM[0x10 | (address & 0x3F0F)] = value & 0x3F;
             else VRAM[address & 0x3F1F] = value & 0x3F;
         }
@@ -256,6 +260,7 @@ void PPU::move(){
         sy++;
     }
     if(yy == 262){
+        printf("\n");
         yy = 0;
     }
     if(xx < 256 && yy < 240){
@@ -288,11 +293,12 @@ void PPU::move(){
  
         //Sprites
         if(bg != 0x3F00 && sprzr[xx] && yy < 239){
-            if(lzhit == 0) lzhit = 257;
+            regs[2] |= 0x40; 
+            // if(lzhit == 0) lzhit = 257;
         }
         if(lzhit){
-            lzhit--;
-            if(lzhit == 0){  regs[2] |= 0x40; }
+            // lzhit--;
+            // if(lzhit == 0){  regs[2] |= 0x40; }
         }
         unsigned short res = bg;
         for(auto [cl, hid] : spr[xx]){
@@ -334,7 +340,6 @@ void PPU::evaluateScrollX(){
 void PPU::evaluateScrollY(){
     sy = (((treg & 0x3E0) >> 5) << 3) + ((treg >> 12) & 7);
     if(treg & 0x800) sy += 240;
-    sy++;
     sy %= 480;
 }
 
