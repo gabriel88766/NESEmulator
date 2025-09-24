@@ -35,12 +35,15 @@ unsigned char Bus::readAddress(unsigned short address){
             if (!strobe) {
                 regbut1 >>= 1;
             }
+            ret |= (last_value & 0xFE);
         }else if(address == 0x4017){
             ret = (regbut2 & 1) ? 0 : 1;  // active low
             if (!strobe) {
                 regbut2 >>= 1;
             }
-        }else ret = apu->readMemory(address & 0x1F);
+            ret |= (last_value & 0xFE);
+        }else if(address == 0x4015) return apu->readMemory(0x15);
+        else return ret = last_value;
     }else if(address < 0x6000){
         ret = last_value;
     }else{
@@ -71,11 +74,10 @@ void Bus::writeAddress(unsigned short address, unsigned char value){
             begin <<= 8;
             for(unsigned short j = 0; j < 0x100; j++){
                 ppu->writeOAM(cpu->readAddress(begin + j));
-                cpu->total_cycles += 2;
-                for(int u=0;u<6;u++) movePPU();
+                cpu->newCycle();
+                cpu->newCycle();
             }
-            cpu->total_cycles += 1;
-            for(int u=0;u<3;u++) movePPU();
+            cpu->newCycle();
         }else if(address == 0x4016){
             strobe = value & 1;
             if (strobe) {
@@ -109,11 +111,6 @@ void Bus::movePPU(){
     ppu->move();
 }
 
-void Bus::loadCHR(unsigned char *data, int beg, int end){
-    for(int j=beg;j<end;j++){
-        ppu->VRAM[j] = data[j-beg];
-    }
-}
 
 void Bus::clockAPU(){
     apu->clock();

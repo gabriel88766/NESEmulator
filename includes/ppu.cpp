@@ -162,6 +162,7 @@ void PPU::PPUSCROLL(){
             wreg ^= 1;
         }    
     }
+    // evaluateScrollX();
 }
 void PPU::PPUADDR(){
     if(is_read) retVal = openbus;
@@ -178,6 +179,8 @@ void PPU::PPUADDR(){
                 treg &= 0x7F00;
                 treg |= value;
                 vreg = treg;
+                evaluateScrollX();
+                evaluateScrollY();
             }
             wreg ^= 1;
         }
@@ -225,8 +228,9 @@ void PPU::PPUDATA(){
     }
     int ob = vreg & 0x1000;
     vreg += inc;
-    if((vreg & 0x1000) == 0x10 && ob == 0) bus->cartridge->Clockmm3();
 
+    if((vreg & 0x1000) == 0x10 && ob == 0) bus->cartridge->Clockmm3();
+    evaluateScroll();
 }
 
 
@@ -251,16 +255,15 @@ void PPU::move(){
     if(xx == 341){
         xx = 0;
         yy++;
-        // sy++;
     }
     if(yy == 262){
         yy = 0;
     }
     if(xx < 256 && yy < 240){
         if(xx == 0) {
-            evaluateScroll(), evaluateSprites(yy);
+            evaluateSprites(yy); //this is wrong, but easy to fix?!
         }
-        int cx = xx + sx;
+        int cx = sx;
         int cy = sy;
         if(cx >= 512) cx -= 512;
         if(cy >= 480) cy -= 480;
@@ -284,13 +287,8 @@ void PPU::move(){
 
  
         //Sprites
-        if(bg != 0x3F00 && sprzr[xx] && yy < 239){
-            // regs[2] |= 0x40; 
-            if(lzhit == 0) lzhit = 257;
-        }
-        if(lzhit){
-            lzhit--;
-            if(lzhit == 0){  regs[2] |= 0x40; }
+        if(bg != 0x3F00 && sprzr[xx] && yy <= 239){
+            regs[2] |= 0x40; 
         }
         unsigned short res = bg;
         for(auto [cl, hid] : spr[xx]){
@@ -300,8 +298,10 @@ void PPU::move(){
             }
         }
         framebuffer[xx][yy] = color_pallete_1[VRAM[res]];
+        sx++;
     }
-    if(xx == 256 && (yy <= 240 || yy >= 261) && (regs[1] & 0x18)){
+    
+    if(xx == 256 && (yy < 240 || yy == 261) && (regs[1] & 0x18)){
         int val = (0x7000 & vreg) >> 12;
         if(val == 7){
             vreg &= 0x0FFF;
@@ -309,16 +309,23 @@ void PPU::move(){
             if(val == 29){
                 val = 0;
                 vreg ^= 0x800;
+                if(vreg & 0x800) sy = 240;
+                else sy = 0;
             }else if(val == 31){
+                if(vreg & 0x800) sy = 240;
+                else sy = 0;
                 val = 0;
             }else{
+                sy++;
                 val += 1;
             }
             vreg &= ~ 0x3E0;
             vreg |= val << 5;
         }else{
             vreg += 0x1000;
+            sy++;
         }
+        
     }
     if(yy == 241 && xx == 1){
         setVblank();
@@ -340,15 +347,36 @@ void PPU::move(){
         }
         even ^= 1;
     }
+    if(yy == 261 && xx >= 280 && xx <= 304 && (regs[1] & 0x18)){
+        evaluateScrollY();
+    }
+    if(xx == 257 && (yy < 240 || yy == 261) && (regs[1] & 0x18)){
+        evaluateScrollX();
+    }
     if(yy == 261 && xx >= 257 && xx <= 320) regs[3] = 0;
 }
 
+//no copy treg to vreg here
 void PPU::evaluateScroll(){
-    sx = ((treg & 0x1F) << 3) + (xreg & 7);
-    if(treg & 0x400) sx += 256;
     sy = (((vreg & 0x3E0) >> 5) << 3) + ((vreg >> 12) & 7);
     if(vreg & 0x800) sy += 240;
     sy %= 480;
+    sx = ((vreg & 0x1F) << 3) + (xreg & 7);
+    if(vreg & 0x400) sx += 256;
+}
+void PPU::evaluateScrollY(){
+    vreg &= ~0x7BE0;
+    vreg |= 0x7BE0 & treg;
+    sy = (((vreg & 0x3E0) >> 5) << 3) + ((vreg >> 12) & 7);
+    if(vreg & 0x800) sy += 240;
+    sy %= 480;
+}
+//sometimes it changes mid screen
+void PPU::evaluateScrollX(){
+    vreg &= ~0x41F;
+    vreg |= 0x41F & treg;
+    sx = ((vreg & 0x1F) << 3) + (xreg & 7);
+    if(vreg & 0x400) sx += 256;
 }
 
 //maps to enhance performance.
@@ -400,11 +428,10 @@ void PPU::evaluateSprites(int yy){
             ysz = 8;
             offset += 16 * OAM[addr + 1]; 
         }
-        
-        unsigned char y = OAM[addr];
+        unsigned char y = OAM[addr] + 1;
+        if(!y) continue;
         unsigned char x = OAM[addr + 3];
         if(y > yy || y + ysz - 1 < yy) continue;
-
         bool hidden = OAM[addr + 2] & 0x20 ? true : false;
         bool flipx = OAM[addr + 2] & 0x40 ? true : false;
         bool flipy = OAM[addr + 2] & 0x80 ? true : false;
@@ -436,7 +463,7 @@ void PPU::evaluateSprites(int yy){
                 spr[rx].push_back({0x3F10+color_pat*4 + curColor, hidden});
             }
             
-            if(i == 0 && curColor != 0&& rx != 255 && y != 239){
+            if(i == 0 && curColor != 0&& rx != 255 && y != 240){
                 sprzr[rx] = true;
             }
         }

@@ -169,7 +169,7 @@ void APU::clock(){
     if(cntdmc != 0) cntdmc--;
     if(cntdmc == 0){
         cntdmc = dmc_table[reg[0x10] & 0xF];
-        if(en[4]){ bus->cpu->newCycle(); bus->cpu->newCycle(); bus->cpu->newCycle();}
+        // if(en[4]){ bus->cpu->newCycle(); bus->cpu->newCycle(); bus->cpu->newCycle();}
         if(len[4] >= 1){
             
             len[4]--;

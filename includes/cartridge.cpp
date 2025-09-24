@@ -54,7 +54,7 @@ bool Cartridge::read(const char *filename){
             //bank 0, standard.
             for(int i=0;i<8;i++) chr_rom[i] = chr_banks + 0x400 * i;
         }
-        if(header[4] == 2){
+        if(header[4] >= 2){
             for(int i=0;i<8;i++) prg_rom[i] = prg_banks + 0x1000 * i;
         }else if(header[4] == 1){
             for(int i=0;i<4;i++) prg_rom[i] = prg_banks + 0x1000 * i;

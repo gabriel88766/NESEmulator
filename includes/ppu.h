@@ -46,7 +46,6 @@ private:
     unsigned long long int spset = 0; //unused
     char even = 1;
     bool hit = false;
-    int lzhit = 0;
 public:
     unsigned char VRAM[0x4000]; //exposed, so cartridge can write via bus
     bool okVblank = false;
@@ -76,6 +75,8 @@ public:
 
     //print frame
     void evaluateScroll();
+    void evaluateScrollY();
+    void evaluateScrollX();
     void fillMaps();
     void evaluateSprites(int yy);
     //misc
