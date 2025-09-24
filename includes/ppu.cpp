@@ -114,8 +114,7 @@ void PPU::writeOAM(unsigned char value){
 //regs functions
 void PPU::PPUCTRL(){
     if(is_read) retVal = openbus;
-    else if(bus->getCycles() >= 29658){
-        
+    else{ 
         if(((regs[0] & 0x80) == 0) && (value & 0x80) && (regs[2] & 0x80)) bus->setNMI();
         regs[0] = value;
         treg &= 0x73FF;
@@ -124,7 +123,7 @@ void PPU::PPUCTRL(){
 }   
 void PPU::PPUMASK(){
     if(is_read) retVal = openbus;
-    else if(bus->getCycles() >= 29658) regs[1] = value;
+    else regs[1] = value;
 }
 void PPU::PPUSTATUS(){
     if(is_read){
@@ -149,41 +148,37 @@ void PPU::OAMDATA(){
 void PPU::PPUSCROLL(){
     if(is_read) retVal = openbus;
     else{
-        if(bus->getCycles() >= 29658){
-            if(wreg == 0){
-                treg &= 0x7FE0;
-                treg |= value >> 3;
-                xreg = value & 7;
-            }else{
-                treg &= 0xC1F;
-                treg |= (value & 7) << 12;
-                treg |= (value >> 3) << 5;
-            }
-            wreg ^= 1;
-        }    
+        if(wreg == 0){
+            treg &= 0x7FE0;
+            treg |= value >> 3;
+            xreg = value & 7;
+        }else{
+            treg &= 0xC1F;
+            treg |= (value & 7) << 12;
+            treg |= (value >> 3) << 5;
+        }
+        wreg ^= 1;
     }
     // evaluateScrollX();
 }
 void PPU::PPUADDR(){
     if(is_read) retVal = openbus;
     else{
-        if(bus->getCycles() >= 29658){
-            if(wreg == 0){
-                int ob = regs[7] & 0x10;
-                regs[7] = value; //high byte
-                treg &= 0xFF;
-                treg |= (value << 8) & 0x3F00;
-                if((regs[7] & 0x10) == 0x10 && ob == 0) bus->cartridge->Clockmm3();
-            } else{
-                regs[8] = value; //low byte
-                treg &= 0x7F00;
-                treg |= value;
-                vreg = treg;
-                evaluateScrollX();
-                evaluateScrollY();
-            }
-            wreg ^= 1;
+        if(wreg == 0){
+            int ob = regs[7] & 0x10;
+            regs[7] = value; //high byte
+            treg &= 0xFF;
+            treg |= (value << 8) & 0x3F00;
+            if((regs[7] & 0x10) == 0x10 && ob == 0) bus->cartridge->Clockmm3();
+        } else{
+            regs[8] = value; //low byte
+            treg &= 0x7F00;
+            treg |= value;
+            vreg = treg;
+            evaluateScrollX();
+            evaluateScrollY();
         }
+        wreg ^= 1;
     }
 }
 void PPU::PPUDATA(){
@@ -229,7 +224,7 @@ void PPU::PPUDATA(){
     int ob = vreg & 0x1000;
     vreg += inc;
 
-    if((vreg & 0x1000) == 0x10 && ob == 0) bus->cartridge->Clockmm3();
+    if((vreg & 0x1000) == 0x1000 && ob == 0) bus->cartridge->Clockmm3();
     evaluateScroll();
 }
 
@@ -347,11 +342,13 @@ void PPU::move(){
         }
         even ^= 1;
     }
-    if(yy == 261 && xx >= 280 && xx <= 304 && (regs[1] & 0x18)){
-        evaluateScrollY();
+    if(yy == 261 && xx >= 280 && xx <= 304){
+        if(regs[1] & 0x18) evaluateScrollY();
+        else sy = 0;
     }
-    if(xx == 257 && (yy < 240 || yy == 261) && (regs[1] & 0x18)){
-        evaluateScrollX();
+    if(xx == 257 && (yy < 240 || yy == 261)){
+        if((regs[1] & 0x18)) evaluateScrollX();
+        else sx = 0;
     }
     if(yy == 261 && xx >= 257 && xx <= 320) regs[3] = 0;
 }

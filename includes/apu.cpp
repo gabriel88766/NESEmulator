@@ -138,8 +138,6 @@ void APU::tick(){
         if(cnt == CYCLES[4]){
             
             cnt = 0;
-            F = false;
-            bus->setIRQ(false);
         }
     }else{
         //Envelope and linear counter
@@ -153,10 +151,7 @@ void APU::tick(){
         if(cnt == CYCLES[3]){
             
             //interruption
-            F = false;
-            bus->setIRQ(false);
             if(!(reg[0x17] & 0x40)){
-                bus->setIRQ(true);
                 F = true;
             }
             cnt = 0;

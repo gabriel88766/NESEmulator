@@ -846,8 +846,8 @@ void CPU::checkN(unsigned char value){
 
 //Controllers and debug
 void CPU::printState(unsigned short opc){
-    printf( "A : 0x%02X, X : 0x%02X, Y : 0x%02X, P : 0x%02X, S : 0x%02X PC : 0x%04X, opcode = 0x%02X\n", 
-        A, X, Y, P, S, opc, opcode); //registers and opcode.
+    printf( "A : 0x%02X, X : 0x%02X, Y : 0x%02X, P : 0x%02X, S : 0x%02X PC : 0x%04X, opcode = 0x%02X memory = 0x%04X\n",
+        A, X, Y, P, S, opc, opcode, memory); //registers and opcode.
         fflush(stdout);
 }
 
