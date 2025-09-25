@@ -20,15 +20,9 @@ private:
     Bus *bus;
     unsigned char regs[10]; 
     unsigned char OAM[0x100];
-    unsigned short nametables0[512][480]; //update after writting on VRAM
-    unsigned short nametables1[512][480];
-    bool opaque[512][480];
-    bool isopaque[256][240];
-    // bool sprzr[256][240];
     bool sprzr[256];
     unsigned short mp[512][480];
     unsigned char mp2[512][480];
-    // std::vector<std::pair<unsigned short, bool>> spr[256][240];
     std::vector<std::pair<unsigned short, bool>> spr[256];
     bool is_read = false;
     unsigned char value = 0;

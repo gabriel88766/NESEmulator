@@ -876,7 +876,7 @@ void CPU::powerON(){
     S = 0xFD;
     PC = 0x8000;
     total_cycles = 0;
-    isAccumulator = irq_pin = nmi_pin = false;
+    isAccumulator = nmi_pin = false;
     for(int j=0;j<0x800;j++) RAM[j] = 0;
 }
 
@@ -931,18 +931,10 @@ void invoke(void (CPU::*function)(), CPU &obj) {
     (obj.*function)();
 }
 
-void CPU::setirq(bool value){
-    irq_pin = value;
-}
-
-void CPU::setnmi(){
-    nmi_pin = true;
-}
-
 void CPU::newCycle(){
     total_cycles++;
-    bus->clockAPU();
-    for(int j=0;j<3;j++) bus->movePPU();
+    bus->apu->clock();
+    for(int j=0;j<3;j++) bus->ppu->move();
 }
 
 

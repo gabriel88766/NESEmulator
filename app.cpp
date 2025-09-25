@@ -27,13 +27,15 @@ bool wait = false;
 double sampleRate = 44100.0;
 
 void audio_callback(void* userdata, Uint8* stream, int length) {
-    apu.getSampling((Sint16*) stream, length / sizeof(Sint16), sampleRate);
+    // wait = true;
+    apu.getSampling((Uint16*) stream, length / sizeof(Sint16), sampleRate);
+    // wait = false;
 }
 
 
 
 int main(int argc, char** args){
-    freopen("testROM/logs", "w", stdout);
+    // freopen("testROM/logs", "w", stdout);
     if (SDL_Init( SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) < 0) {
 		cout << "Error initializing SDL: " << SDL_GetError() << endl;
 		return 1;
@@ -42,7 +44,7 @@ int main(int argc, char** args){
     SDL_AudioSpec spec;
 
     spec.freq = (int)sampleRate;                // Sample rate (Hz)
-    spec.format = AUDIO_S16SYS;        // 16-bit signed samples
+    spec.format = AUDIO_U16SYS;        // 16-bit signed samples
     spec.channels = 1;                 // Mono sound
     spec.samples = 512;               // Buffer size (number of samples per callback)
     spec.callback = audio_callback;    // Callback function
@@ -140,6 +142,7 @@ int main(int argc, char** args){
             //test apu
             long long int cyc = cpu.total_cycles;
             while(!ppu.okVblank){
+                while(wait);
                 cpu.nextInstruction();
             }
             ppu.okVblank = false;

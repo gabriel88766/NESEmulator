@@ -35,13 +35,11 @@ unsigned char Bus::readAddress(unsigned short address){
             if (!strobe) {
                 regbut1 >>= 1;
             }
-            ret |= (last_value & 0xFE);
         }else if(address == 0x4017){
             ret = (regbut2 & 1) ? 0 : 1;  // active low
             if (!strobe) {
                 regbut2 >>= 1;
             }
-            ret |= (last_value & 0xFE);
         }else if(address == 0x4015) return apu->readMemory(0x15);
         else return ret = last_value;
     }else if(address < 0x6000){
@@ -91,14 +89,6 @@ void Bus::writeAddress(unsigned short address, unsigned char value){
     }
 }
 
-void Bus::setIRQ(bool value){
-    cpu->setirq(value);
-}
-
-void Bus::setNMI(){
-    cpu->setnmi();
-}
-
 long long Bus::getCycles(){
     return cpu->total_cycles;
 }
@@ -107,14 +97,6 @@ void Bus::setPPUHorizontal(bool value){
     ppu->horizontal = value;
 }
 
-void Bus::movePPU(){
-    ppu->move();
-}
-
-
-void Bus::clockAPU(){
-    apu->clock();
-}
 
 //this won't handle any error
 unsigned char Bus::readCartridge(unsigned short address){

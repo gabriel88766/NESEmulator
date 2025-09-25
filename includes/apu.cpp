@@ -14,7 +14,7 @@ void APU::reset(){
         phase[i] = len[i] = vol[i] = dvp[i] = envp[i] = 0;
     }
     for(int j=0;j<4096;j++){
-        rng[j] = rand() > 16383 ? 1 : 0;
+        rng[j] = (rand() % 32768) > 16383 ? 1 : 0;
     }
     F = I = false;
 }
@@ -34,7 +34,6 @@ unsigned char APU::readMemory(unsigned short address){
         if(F){
              ans |= (1 << 6);
              F = false;
-             bus->setIRQ(false);
         }
         if(I) ans |= (1 << 7);
         return ans;
@@ -51,7 +50,6 @@ void APU::writeMemory(unsigned short address, unsigned char value){
     }
     if(address == 0x17){
         if(value & 0x40){
-            bus->setIRQ(false);
             F = false;
         } 
         cnt = 0;
@@ -59,14 +57,17 @@ void APU::writeMemory(unsigned short address, unsigned char value){
             sweep();
             lenCounter();
             linearCounter();
-            decreaseVolume();
+            envelope();
         }
     }
     if(address == 0x15){
         I = false;
         if(value &(1 << 4)){
-            len[4] = size = 8*((reg[address] << 4) + 1);
-            cntdmc = dmc_table[reg[0x10] & 0xF];
+            if(len[4] <= 8){
+                phase[4] = 0;
+                len[4] += size = 8*((reg[address] << 4) + 1);
+                cntdmc = dmc_table[reg[0x10] & 0xF];
+            }
             en[4] = true;
         }else{
             size = 0;
@@ -89,6 +90,7 @@ void APU::writeMemory(unsigned short address, unsigned char value){
     if(address == 0x11) outp = reg[address] & 0x7F;
     if(address == 0x12) addr = 0xC000 + 64*reg[address];
     if(address == 0x13){
+       
         len[4] = size = 8*((reg[address] << 4) + 1);
         cntdmc = dmc_table[reg[0x10] & 0xF];
     }
@@ -101,9 +103,13 @@ void APU::writeMemory(unsigned short address, unsigned char value){
         dvp[address >> 2] = (((value >> 4) & 7) + 1);
     }
     if(address <= 0xF && ((address & 3) == 3) && en[address >> 2]){
-        len[address >> 2] = len_table[value >> 3] + 1;
-        if(address == 3 || address == 7){
-             phase[address >> 2] = 0;
+        len[address >> 2] = len_table[value >> 3];
+        if(address == 3 || address == 7 || address == 0xF){
+            if(!(reg[address - 3] & 0x10)){
+                vol[address >> 2] = 0xF;
+                envp[address >> 2] = (reg[address - 3] & 0xF);   
+                phase[address >> 2] = 0;
+            }
         }
         if(address == 0xB){
             relT = true;
@@ -111,17 +117,13 @@ void APU::writeMemory(unsigned short address, unsigned char value){
     }
     
     if(address == 0x8){
-        len2 = (value & 0x7F) + 1;
         if(value & 0x80) relT = true;
     }
     
 }
 
 void APU::tick(){
-    if(relT) {
-        len2 = (reg[0x8] & 0x7F) + 1;
-        if(!(reg[0x8] & 0x80)) relT = false;
-    }
+    
     if(reg[0x17] & 0x80){
         if(cnt == CYCLES[1] || cnt == CYCLES[4]){
             //Length counter and sweep
@@ -130,7 +132,7 @@ void APU::tick(){
         }
         if(cnt != CYCLES[3]){
             //Envelope and linear counter
-            decreaseVolume();
+            envelope();
             linearCounter();
         }
 
@@ -142,7 +144,7 @@ void APU::tick(){
     }else{
         //Envelope and linear counter
         linearCounter();
-        decreaseVolume();
+        envelope();
         if(cnt == CYCLES[1] || cnt == CYCLES[3]){
             //Length counter and sweep
             sweep();
@@ -157,6 +159,10 @@ void APU::tick(){
             cnt = 0;
         }
     }
+    if(relT) {
+        len2 = (reg[0x8] & 0x7F);
+        if(!(reg[0x8] & 0x80)) relT = false;
+    }
 }
 
 void APU::clock(){
@@ -164,15 +170,16 @@ void APU::clock(){
     if(cntdmc != 0) cntdmc--;
     if(cntdmc == 0){
         cntdmc = dmc_table[reg[0x10] & 0xF];
-        // if(en[4]){ bus->cpu->newCycle(); bus->cpu->newCycle(); bus->cpu->newCycle();}
+        
         if(len[4] >= 1){
-            
             len[4]--;
+            if(len[4] % 8 == 0){
+                bus->cpu->newCycle(); bus->cpu->newCycle(); bus->cpu->newCycle();
+            }
             if(len[4] == 0){
                 if(reg[0x10] & 0x40){
                     len[4] = (reg[0x13] << 4) + 1;
-                }
-                if(reg[0x10] & 0x80){
+                }else if(reg[0x10] & 0x80){
                     I = true;
                 }
             }
@@ -189,22 +196,20 @@ void APU::linearCounter(){
      if(len2 != 0) len2--;
 }
 
-void APU::decreaseVolume(){
+void APU::envelope(){
     for(int j=0;j<=3;j++){
         if(j == 2) continue;
         if(!(reg[4*j] & 0x10)){
             //v decrement'
-            envp[j]--;
+            
             if(envp[j] == 0){
-                envp[j] = (reg[4*j] & 0xF) + 1;  
+                envp[j] = (reg[4*j] & 0xF);  
                 if(vol[j] == 0){
-                    if(reg[4*j] & 0x20){
-                        vol[j] |= 0xF;
-                    }
+                    if(reg[4*j] & 0x20) vol[j] |= 0xF;
                 }else{
                     vol[j]--;
                 }
-            }
+            }else envp[j]--;
         }
     }
 }
@@ -286,7 +291,8 @@ void APU::Triangle(double *buffer, int length, double rate){
     double phase_inc =  (twoPI * freq) / rate;
     for(int j=0;j<length;j++){
         if(isen){
-            buffer[j] += lv2 = ((15.0  * fabs((phase[2] - PI)/PI))/8227.0);
+            //converting to int makes it sound more NES like.
+            buffer[j] += lv2 = ( (int)(15.0  * fabs((phase[2] - PI)/PI))/8227.0);
         }
         phase[2] += phase_inc;
         if (phase[2] >= twoPI)
@@ -308,10 +314,11 @@ void APU::Noise(double *buffer, int length, double rate){
 }
 
 void APU::DMC(double *buffer, int length, double rate){
-    double inc_phase = (1789773.0/dmc_table[reg[0x10] & 7]) / rate;
+    double inc_phase = (1789773.0/dmc_table[reg[0x10] & 0xF])  / rate;
     for(int j=0;j<length;j++){
         if(en[4]){
             int curv = (int)phase[4];
+            double lf = phase[4];
             phase[4] += inc_phase;
             int nextv = (int)phase[4];
             if(phase[4] >= size) {
@@ -321,23 +328,34 @@ void APU::DMC(double *buffer, int length, double rate){
                     size = 0;
                     // outp = reg[0x11] & 0x7F; //testing
                 }
-            }else if(nextv > curv){
-                unsigned short target = addr + nextv/8;
-                if(target < 0x8000) target += 0x8000;
-                if(bus->readAddress(target) & (1 << (nextv % 8))){
-                    if(outp <= 125) outp += 2;
-                }else if(outp >= 2) outp -= 2;
+            }else{
+                unsigned short t1 = addr + curv/8;
+                unsigned short t2 = addr + nextv/8;
+                if(t1 < 0x8000) t1 += 0x8000;
+                if(t2 < 0x8000) t2 += 0x8000;
+                int v1 = bus->readAddress(t1) & (1 << (curv % 8));
+                int v2 = bus->readAddress(t2) & (1 << (nextv % 8));
+                if(curv == nextv ){
+                    if(v1) outp += 2 * (phase[4] - lf);
+                    else outp -= 2 * (phase[4] - lf);
+                }else{
+                    if(v1) outp += 2 * (nextv - lf);
+                    else outp -= 2 * (nextv - lf);
+                    if(v2) outp += 2 * (phase[4] - nextv);
+                    else outp -= 2 * (phase[4] - nextv);
+                }
+                if(outp >= 127) outp = 127;
+                if(outp <= 1) outp = 1;
             }
         }
 
-        buffer[j] += outp / 2263800000000.0;
+        buffer[j] += outp / 22638.0;
     }
     // int len = 
 }
 //change as your needs!
-void APU::getSampling(short *buffer, int length, double rate){
+void APU::getSampling(unsigned short *buffer, int length, double rate){
     
-    //pulse1 pulse2 triangle
     for(int j=0;j<length;j++) aux[j] = aux2[j] = 1e-9;
     Pulse1(aux, length, rate);
     Pulse2(aux, length, rate);
@@ -353,7 +371,7 @@ void APU::getSampling(short *buffer, int length, double rate){
     }
     
     for(int j=0;j<length;j++){
-        buffer[j] = aux2[j] * 32767;
+        buffer[j] = aux2[j] * 65535;
     }
 
 }

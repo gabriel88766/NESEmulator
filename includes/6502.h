@@ -14,9 +14,8 @@ private:
     unsigned char opcode;
     bool isAccumulator = false; //memory vs accumulator instruction
     Bus *bus;
-    bool irq_pin = false;
-    bool nmi_pin = false;
 public:
+    bool nmi_pin = false;
     CPU(){
         this->powerON();
     }

@@ -115,7 +115,7 @@ void PPU::writeOAM(unsigned char value){
 void PPU::PPUCTRL(){
     if(is_read) retVal = openbus;
     else{ 
-        if(((regs[0] & 0x80) == 0) && (value & 0x80) && (regs[2] & 0x80)) bus->setNMI();
+        if(((regs[0] & 0x80) == 0) && (value & 0x80) && (regs[2] & 0x80)) bus->cpu->nmi_pin = true;
         regs[0] = value;
         treg &= 0x73FF;
         treg |= ((value & 3) << 10) & 0xC00;
@@ -223,7 +223,7 @@ void PPU::PPUDATA(){
     }
     int ob = vreg & 0x1000;
     vreg += inc;
-
+    vreg %= 0x4000;
     if((vreg & 0x1000) == 0x1000 && ob == 0) bus->cartridge->Clockmm3();
     evaluateScroll();
 }
@@ -231,7 +231,7 @@ void PPU::PPUDATA(){
 
 void PPU::setVblank(){
     if(regs[0] & 0x80){
-        bus->setNMI();
+        bus->cpu->nmi_pin = true;
     }
     regs[2] |= 0x80;
 }
@@ -474,10 +474,5 @@ void PPU::powerON(){
     memset(VRAM, 0, sizeof(VRAM));
     memset(regs, 0, sizeof(regs));
     memset(OAM, 0, sizeof(OAM));
-    memset(nametables0, 0, sizeof(nametables0));
-    memset(nametables1, 0, sizeof(nametables1));
-    memset(opaque, 0, sizeof(opaque));
-    memset(isopaque, 0, sizeof(isopaque));
-    memset(sprzr, 0, sizeof(sprzr));
     fillMaps();
 }

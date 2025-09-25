@@ -33,12 +33,8 @@ public:
     void connectAPU(APU *apu);
     unsigned char readAddress(unsigned short address);
     void writeAddress(unsigned short address, unsigned char value);
-    void setIRQ(bool value);
-    void setNMI();
     long long int getCycles();
     void setPPUHorizontal(bool value);
-    void movePPU();
-    void clockAPU();
     unsigned char readCartridge(unsigned short address);
     void writeCartridge(unsigned short address, unsigned char value);
 };
