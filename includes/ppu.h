@@ -71,7 +71,6 @@ public:
     void evaluateScroll();
     void evaluateScrollY();
     void evaluateScrollX();
-    void fillMaps();
     void evaluateSprites(int yy);
     //misc
     void powerON();

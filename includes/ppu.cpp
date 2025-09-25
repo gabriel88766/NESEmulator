@@ -189,10 +189,23 @@ void PPU::PPUDATA(){
         if(addr < 0x2000){
             buffer = bus->readCartridge(addr);
         }else if(addr < 0x3000){
+            addr &= 0xFFF;
+            if(horizontal){
+                addr &= ~0x400;
+                if(addr >= 0x800) addr -= 0x400;
+            }else{
+                addr &= ~0x800;
+            }
             buffer = VRAM[addr];
-            
         }else if(addr < 0x3F00){
-            buffer = VRAM[addr & 0x2FFF]; //mirror
+            addr &= 0xFFF;
+            if(horizontal){
+                addr &= ~0x400;
+                if(addr >= 0x800) addr -= 0x400;
+            }else{
+                addr &= ~0x800;
+            }
+            buffer = VRAM[addr];
         }else{
             buffer = VRAM[addr & 0x2FFF];
             retVal = (VRAM[addr & 0x3F1F] & 0x3F) | (openbus & 0xC0);
@@ -203,20 +216,24 @@ void PPU::PPUDATA(){
         if(addr < 0x2000){
             bus->writeCartridge(addr, value);
         }else if(addr < 0x3000){
+            addr &= 0xFFF;
             if(horizontal){
-                VRAM[addr ^ 0x400] = VRAM[addr] = value;
+                addr &= ~0x400;
+                if(addr >= 0x800) addr -= 0x400;
             }else{
-                VRAM[addr ^ 0x800] = VRAM[addr] = value;
+                addr &= ~0x800;
             }
+            VRAM[addr] = value;
         }else if(addr < 0x3F00){
-            addr &= 0x2FFF;
+            addr &= 0xFFF;
             if(horizontal){
-                VRAM[addr ^ 0x400] = VRAM[addr] = value;
+                addr &= ~0x400;
+                if(addr >= 0x800) addr -= 0x400;
             }else{
-                VRAM[addr ^ 0x800] = VRAM[addr] = value;
+                addr &= ~0x800;
             }
+            VRAM[addr] = value;
         }else{
-            
             if(!(addr & 3)) VRAM[addr & 0x3F0F] = VRAM[0x10 | (addr & 0x3F0F)] = value & 0x3F;
             else VRAM[addr & 0x3F1F] = value & 0x3F;
         }
@@ -263,9 +280,19 @@ void PPU::move(){
         if(cx >= 512) cx -= 512;
         if(cy >= 480) cy -= 480;
         //Background
-        unsigned short address = 0x2000;
-        if(cx >= 256) address += 0x400;
-        if(cy >= 240) address += 0x800;
+        unsigned short address = 0;
+        if(cx >= 256 && (!horizontal)) address += 0x400;
+        if(cy >= 240 && horizontal) address += 0x400;
+        cx %= 256, cy %= 240;
+        int memplc = address + 0x3C0 + (cx/32) + 8*(cy/32);
+        int bit;
+        if((cy % 32) >= 16){
+            if((cx % 32) >= 16) bit = 6;
+            else  bit = 4;
+        }else{
+            if((cx % 32) >= 16) bit = 2;
+            else bit = 0;
+        }
         address += (cx & 0xFF) >> 3;
         address += ((cy >= 240 ? cy - 240 : cy) >> 3) << 5;
         unsigned short offset = 16 * VRAM[address];
@@ -275,7 +302,7 @@ void PPU::move(){
         unsigned char bytesl = bus->readCartridge(offset+jj); 
         unsigned char bytesr = bus->readCartridge(offset+jj+8);
         int cl = ((bytesl & (1 << (7-kk)))? 1 : 0) + ((bytesr & (1 << (7-kk)))? 2 : 0);
-        int pal = (VRAM[mp[cx][cy]] >> mp2[cx][cy]) & 3;
+        int pal = (VRAM[memplc] >> bit) & 3;
         unsigned short bg = cl ?  0x3F00 + pal * 4 + cl : 0x3F00;
         if(xx < 8 && (!(regs[1] & 0x2))) bg = 0x3F00;
         if(!(regs[1] & 8)) bg = 0x3F00;
@@ -327,7 +354,6 @@ void PPU::move(){
     }
     if(yy == 261 && xx == 1){
         clearVblank();
-        fillMaps();
         if(bus_set + 50000 < bus->getCycles()) openbus = 0;
         okVblank = true;
         if(regs[1] & 0x18) vreg = treg;
@@ -374,33 +400,6 @@ void PPU::evaluateScrollX(){
     vreg |= 0x41F & treg;
     sx = ((vreg & 0x1F) << 3) + (xreg & 7);
     if(vreg & 0x400) sx += 256;
-}
-
-//maps to enhance performance.
-void PPU::fillMaps(){
-    for(unsigned short address = 0x2000; address <= 0x2FFF; address++){
-        if((address & 0x3FF) >= 0x3C0) continue;
-        int rx = 8 * (address % 32);
-        int ry = 8 * ((address & 0x3FF) / 32);
-        unsigned short memplc = (address & 0x2C00) + 0x3C0 + (rx/32) + 8*(ry/32);
-        int bit = 0;
-        if((ry % 32) >= 16){
-            if((rx % 32) >= 16) bit = 6;
-            else  bit = 4;
-        }else{
-            if((rx % 32) >= 16) bit = 2;
-            else bit = 0;
-        }
-
-        rx += address & 0x400 ? 256 : 0;
-        ry += address & 0x800 ? 240 : 0;
-        for(int j=0;j<8;j++){
-            for(int k=0; k < 8; k++){
-                mp[rx + k][ry + j] = memplc;
-                mp2[rx + k][ry + j] = bit;
-            }
-        }    
-    }
 }
 
 void PPU::evaluateSprites(int yy){
@@ -474,5 +473,4 @@ void PPU::powerON(){
     memset(VRAM, 0, sizeof(VRAM));
     memset(regs, 0, sizeof(regs));
     memset(OAM, 0, sizeof(OAM));
-    fillMaps();
 }
