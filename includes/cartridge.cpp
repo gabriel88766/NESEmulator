@@ -27,9 +27,9 @@ bool Cartridge::read(const char *filename){
         //TODO: assert iNes, this emulator isn't indented to support NES 2.0
         mapper = (header[7] & 0xF0) | (header[6] >> 4);
         if(header[6] & 1){
-            bus->setPPUHorizontal(false);
+            bus->ppu->mirror = bus->ppu->VERTICAL;
         }else{
-            bus->setPPUHorizontal(true);
+            bus->ppu->mirror = bus->ppu->HORIZONTAL;
         }
         delete[] prg_banks;
         delete[] chr_banks;
@@ -77,6 +77,8 @@ bool Cartridge::read(const char *filename){
                 cnt4 = rlirq4 = 0;
                 for(int i=0;i<4;i++) prg_rom[i] = prg_banks + (header[4] - 1) * 0x4000 + 0x1000 * i;
                 for(int i=4;i<8;i++) prg_rom[i] = prg_banks + (header[4] - 1) * 0x4000 + 0x1000 * (i-4);
+                //Rad Racer II
+                if(header[6] & 0x08){ bus->ppu->mirror = bus->ppu->FOUR_SCREEN; }
                 break;
             case 185:
                 if(header[4] == 2){
@@ -203,8 +205,10 @@ void Cartridge::writeMemory(unsigned short address, unsigned char value){
                     
                 }   
                 if(address % 2 == 0 && address >= 0xA000 && address <= 0xBFFF){
-                    if(value & 1) bus->setPPUHorizontal(true);
-                    else bus->setPPUHorizontal(false);
+                    if(!(header[6] & 0x08)){
+                        if(value & 1) bus->ppu->mirror = bus->ppu->HORIZONTAL;
+                        else bus->ppu->mirror = bus->ppu->VERTICAL;
+                    }
                 }
                 if(address % 2 == 0 && address >= 0xC000 && address <= 0xDFFF){
                     rlirq4 = value;

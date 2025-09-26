@@ -863,6 +863,10 @@ void CPU::nextInstruction(){
     for(int i=0;i<instructions[opcode].cycles;i++){
         newCycle();
     }
+    if(delay_nmi){
+        delay_nmi = false;
+        nmi_pin = true;
+    }
 
     unsigned short opc = PC;
     opcode = bus->readAddress(PC++);

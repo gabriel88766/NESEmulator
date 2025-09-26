@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstring>
 #include <cassert>
+#include <fstream>
 
 void(PPU::*register_action[])() = {
     &PPU::PPUCTRL,
@@ -14,79 +15,21 @@ void(PPU::*register_action[])() = {
     &PPU::PPUDATA
 };
 
-Color color_pallete_1[] = {
-    {0x7C, 0x7C, 0x7C},
-    {0x00, 0x00, 0xFC},
-    {0x00, 0x00, 0xBC},
-    {0x44, 0x28, 0xBC},
-    {0x94, 0x00, 0x84},
-    {0xA8, 0x00, 0x20},
-    {0xA8, 0x10, 0x00},
-    {0x88, 0x14, 0x00},
-    {0x50, 0x30, 0x00},
-    {0x00, 0x78, 0x00},
-    {0x00, 0x68, 0x00},
-    {0x00, 0x58, 0x00},
-    {0x00, 0x40, 0x58},
-    {0x00, 0x00, 0x00},
-    {0x00, 0x00, 0x00},
-    {0x00, 0x00, 0x00},
+Color color_pallete[8][64];
 
-    {0xBC, 0xBC, 0xBC},
-    {0x00, 0x78, 0xF8},
-    {0x00, 0x58, 0xF8},
-    {0x68, 0x44, 0xFC},
-    {0xD8, 0x00, 0xCC},
-    {0xE4, 0x00, 0x58},
-    {0xF8, 0x38, 0x00},
-    {0xE4, 0x5C, 0x10},
-    {0xAC, 0x7C, 0x00},
-    {0x00, 0xB8, 0x00},
-    {0x00, 0xA8, 0x00},
-    {0x00, 0xA8, 0x44},
-    {0x00, 0x88, 0x88},
-    {0x00, 0x00, 0x00},
-    {0x00, 0x00, 0x00},
-    {0x00, 0x00, 0x00},
-
-    {0xF8, 0xF8, 0xF8},
-    {0x3C, 0xBC, 0xFC},
-    {0x68, 0x88, 0xFC},
-    {0x98, 0x78, 0xF8},
-    {0xF8, 0x78, 0xF8},
-    {0xF8, 0x58, 0x98},
-    {0xF8, 0x78, 0x58},
-    {0xFC, 0xA0, 0x44},
-    {0xF8, 0xB8, 0x00},
-    {0xB8, 0xF8, 0x18},
-    {0x58, 0xD8, 0x54},
-    {0x58, 0xF8, 0x98},
-    {0x00, 0xE8, 0xD8},
-    {0x78, 0x78, 0x78},
-    {0x00, 0x00, 0x00},
-    {0x00, 0x00, 0x00},
-
-    {0xFC, 0xFC, 0xFC},
-    {0xA4, 0xE4, 0xFC},
-    {0xB8, 0xB8, 0xF8},
-    {0xD8, 0xB8, 0xF8},
-    {0xF8, 0xB8, 0xF8},
-    {0xF8, 0xA4, 0xC0},
-    {0xF0, 0xD0, 0xB0},
-    {0xFC, 0xE0, 0xA8},
-    {0xF8, 0xD8, 0x78},
-    {0xD8, 0xF8, 0x78},
-    {0xB8, 0xF8, 0xB8},
-    {0xB8, 0xF8, 0xD8},
-    {0x00, 0xFC, 0xFC},
-    {0xF8, 0xD8, 0xF8},
-    {0x00, 0x00, 0x00},
-    {0x00, 0x00, 0x00}
-};
-
-
+void initColorPallete(){
+    std::ifstream input("includes/2C02G_wiki.pal", std::ios::binary);
+    unsigned char *data = new unsigned char[8*64*3];
+    input.read((char *)data, 8*64*3);
+    for(int i=0;i<8;i++){
+        for(int j=0;j<64;j++){
+            color_pallete[i][j] = {data[i * 192 + 3 * j], data[i * 192 + 3 * j + 1], data[i * 192 + 3 * j + 2]};
+        }
+    }
+}
 
 PPU::PPU(){
+    initColorPallete();
     powerON();
 }
 
@@ -115,7 +58,9 @@ void PPU::writeOAM(unsigned char value){
 void PPU::PPUCTRL(){
     if(is_read) retVal = openbus;
     else{ 
-        if(((regs[0] & 0x80) == 0) && (value & 0x80) && (regs[2] & 0x80)) bus->cpu->nmi_pin = true;
+        if(((regs[0] & 0x80) == 0) && (value & 0x80) && (regs[2] & 0x80)){
+            bus->cpu->delay_nmi = true;
+        }
         regs[0] = value;
         treg &= 0x73FF;
         treg |= ((value & 3) << 10) & 0xC00;
@@ -128,7 +73,7 @@ void PPU::PPUMASK(){
 void PPU::PPUSTATUS(){
     if(is_read){
         openbus = retVal = regs[2] | (0x1F & openbus);
-        bus_set = bus->getCycles();
+        bus_set = bus->cpu->total_cycles;
         regs[2] &= 0x7F;
         wreg = 0;
     }else openbus = value;
@@ -140,7 +85,7 @@ void PPU::OAMADDR(){
 void PPU::OAMDATA(){
     if(is_read){
         openbus = retVal = OAM[regs[3]];
-        bus_set = bus->getCycles();
+        bus_set = bus->cpu->total_cycles;
     }else{
         writeOAM(value);
     }
@@ -181,6 +126,10 @@ void PPU::PPUADDR(){
         wreg ^= 1;
     }
 }
+
+
+
+
 void PPU::PPUDATA(){
     int inc = regs[0] & 0x4 ? 32 : 1;
     unsigned short addr = vreg & 0x3FFF;
@@ -188,54 +137,26 @@ void PPU::PPUDATA(){
         retVal = buffer;
         if(addr < 0x2000){
             buffer = bus->readCartridge(addr);
-        }else if(addr < 0x3000){
-            addr &= 0xFFF;
-            if(horizontal){
-                addr &= ~0x400;
-                if(addr >= 0x800) addr -= 0x400;
-            }else{
-                addr &= ~0x800;
-            }
-            buffer = VRAM[addr];
         }else if(addr < 0x3F00){
             addr &= 0xFFF;
-            if(horizontal){
-                addr &= ~0x400;
-                if(addr >= 0x800) addr -= 0x400;
-            }else{
-                addr &= ~0x800;
-            }
+            addr = getAddress(addr);
             buffer = VRAM[addr];
         }else{
-            buffer = VRAM[addr & 0x2FFF];
-            retVal = (VRAM[addr & 0x3F1F] & 0x3F) | (openbus & 0xC0);
+            buffer = VRAM[getAddress(addr & 0xFFF)];
+            retVal = (pmem[addr & 0x1F] & 0x3F) | (openbus & 0xC0);
         }
-        bus_set = bus->getCycles();
+        bus_set = bus->cpu->total_cycles;
         openbus = retVal;
     }else{
         if(addr < 0x2000){
             bus->writeCartridge(addr, value);
-        }else if(addr < 0x3000){
-            addr &= 0xFFF;
-            if(horizontal){
-                addr &= ~0x400;
-                if(addr >= 0x800) addr -= 0x400;
-            }else{
-                addr &= ~0x800;
-            }
-            VRAM[addr] = value;
         }else if(addr < 0x3F00){
             addr &= 0xFFF;
-            if(horizontal){
-                addr &= ~0x400;
-                if(addr >= 0x800) addr -= 0x400;
-            }else{
-                addr &= ~0x800;
-            }
+            addr = getAddress(addr);
             VRAM[addr] = value;
         }else{
-            if(!(addr & 3)) VRAM[addr & 0x3F0F] = VRAM[0x10 | (addr & 0x3F0F)] = value & 0x3F;
-            else VRAM[addr & 0x3F1F] = value & 0x3F;
+            if(!(addr & 3)) pmem[addr & 0xF] = pmem[0x10 | (addr & 0xF)] = value & 0x3F;
+            else pmem[addr & 0x1F] = value & 0x3F;
         }
     }
     int ob = vreg & 0x1000;
@@ -260,8 +181,6 @@ void PPU::clearVblank(){
 }
 
 
-
-
 void PPU::move(){
     ++xx;
     if(xx == 341){
@@ -281,8 +200,9 @@ void PPU::move(){
         if(cy >= 480) cy -= 480;
         //Background
         unsigned short address = 0;
-        if(cx >= 256 && (!horizontal)) address += 0x400;
-        if(cy >= 240 && horizontal) address += 0x400;
+        if(cx >= 256) address += 0x400;
+        if(cy >= 240) address += 0x800;
+        address = getAddress(address);
         cx %= 256, cy %= 240;
         int memplc = address + 0x3C0 + (cx/32) + 8*(cy/32);
         int bit;
@@ -294,7 +214,7 @@ void PPU::move(){
             else bit = 0;
         }
         address += (cx & 0xFF) >> 3;
-        address += ((cy >= 240 ? cy - 240 : cy) >> 3) << 5;
+        address += (cy >> 3) << 5;
         unsigned short offset = 16 * VRAM[address];
         if((regs[0] & 0x10)) offset += 0x1000;
         int jj = cy & 7;
@@ -303,23 +223,23 @@ void PPU::move(){
         unsigned char bytesr = bus->readCartridge(offset+jj+8);
         int cl = ((bytesl & (1 << (7-kk)))? 1 : 0) + ((bytesr & (1 << (7-kk)))? 2 : 0);
         int pal = (VRAM[memplc] >> bit) & 3;
-        unsigned short bg = cl ?  0x3F00 + pal * 4 + cl : 0x3F00;
-        if(xx < 8 && (!(regs[1] & 0x2))) bg = 0x3F00;
-        if(!(regs[1] & 8)) bg = 0x3F00;
+        unsigned short bg = cl ?  pal * 4 + cl : 0;
+        if(xx < 8 && (!(regs[1] & 0x2))) bg = 0;
+        if(!(regs[1] & 8)) bg = 0;
 
  
         //Sprites
-        if(bg != 0x3F00 && sprzr[xx] && yy <= 239){
+        if(bg != 0 && sprzr[xx] && yy <= 239){
             regs[2] |= 0x40; 
         }
         unsigned short res = bg;
         for(auto [cl, hid] : spr[xx]){
-            if(cl != 0x3F00){
-                if(hid && bg != 0x3F00) res = bg;
+            if(cl != 0){
+                if(hid && bg !=00) res = bg;
                 else res = cl;
             }
         }
-        framebuffer[xx][yy] = color_pallete_1[VRAM[res]];
+        framebuffer[xx][yy] = color_pallete[regs[1] >> 5][pmem[res]];
         sx++;
     }
     
@@ -354,7 +274,7 @@ void PPU::move(){
     }
     if(yy == 261 && xx == 1){
         clearVblank();
-        if(bus_set + 50000 < bus->getCycles()) openbus = 0;
+        if(bus_set + 50000 < bus->cpu->total_cycles) openbus = 0;
         okVblank = true;
         if(regs[1] & 0x18) vreg = treg;
     }
@@ -404,7 +324,6 @@ void PPU::evaluateScrollX(){
 
 void PPU::evaluateSprites(int yy){
     //Once per line...
-    Color colors[4];
     for(int x=0;x<256;x++){
         sprzr[x] = false;
         spr[x].clear();
@@ -432,9 +351,6 @@ void PPU::evaluateSprites(int yy){
         bool flipx = OAM[addr + 2] & 0x40 ? true : false;
         bool flipy = OAM[addr + 2] & 0x80 ? true : false;
         int color_pat = OAM[addr + 2] & 3;
-        colors[1] = color_pallete_1[VRAM[(0x3F10+color_pat*4 + 1) & 0x3F1F]];
-        colors[2] = color_pallete_1[VRAM[(0x3F10+color_pat*4 + 2) & 0x3F1F]];
-        colors[3] = color_pallete_1[VRAM[(0x3F10+color_pat*4 + 3) & 0x3F1F]];
         
         int j = yy - y;
         int ry = ysz == 8 ? (flipy ? y + 7 - j: y + j) : (flipy ? y + 15 - j : y + j);
@@ -456,7 +372,7 @@ void PPU::evaluateSprites(int yy){
                 continue;
             }
             if(curColor != 0){
-                spr[rx].push_back({0x3F10+color_pat*4 + curColor, hidden});
+                spr[rx].push_back({0x10+color_pat*4 + curColor, hidden});
             }
             
             if(i == 0 && curColor != 0&& rx != 255 && y != 240){
@@ -471,6 +387,26 @@ void PPU::powerON(){
     okVblank = false;
     xx = yy = sx = sy = 0;
     memset(VRAM, 0, sizeof(VRAM));
+    memset(pmem, 0, sizeof(pmem));
     memset(regs, 0, sizeof(regs));
     memset(OAM, 0, sizeof(OAM));
+}
+
+//address from 0 to 0xFFF based on mirroring
+unsigned short PPU::getAddress(unsigned short addr){
+    switch(mirror){
+        case 0:
+            addr &= ~0x400;
+            if(addr >= 0x800) addr -= 0x400;
+            break;
+        case 1: 
+            addr &= ~0x800;
+            break;
+        case 2:
+            //do nothing
+            break;
+        case 3:
+            addr &= 0x3FFF;
+    }
+    return addr;
 }

@@ -16,7 +16,9 @@ void APU::reset(){
     for(int j=0;j<4096;j++){
         rng[j] = (rand() % 32768) > 16383 ? 1 : 0;
     }
-    F = I = false;
+    len2 = remain = cntdmc = size = addr = 0;
+    outp = 0;
+    relT = F = I = false;
 }
 
 void APU::connectBus(Bus *bus){

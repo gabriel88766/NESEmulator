@@ -2,23 +2,22 @@
 #define PPU_H
 
 #include "bus.h"
-#include "ImageMaker.h"
 #include <vector>
 class Bus;
 
 
 
-// struct Color{
-//     unsigned char R;
-//     unsigned char G;
-//     unsigned char B;
-//     //Alpha default FF
-// };
+struct Color{
+    unsigned char R;
+    unsigned char G;
+    unsigned char B;
+    //Alpha default FF
+};
 
 class PPU{
 private:
     Bus *bus;
-    unsigned char regs[10]; 
+    
     unsigned char OAM[0x100];
     bool sprzr[256];
     unsigned short mp[512][480];
@@ -40,10 +39,16 @@ private:
     unsigned long long int spset = 0; //unused
     char even = 1;
     bool hit = false;
+    
+    
+
 public:
-    unsigned char VRAM[0x4000]; //exposed, so cartridge can write via bus
+unsigned char regs[10]; 
+    const int HORIZONTAL = 0, VERTICAL = 1, FOUR_SCREEN = 2, SINGLE_SCREEN = 3;
+    unsigned char VRAM[0x1000]; //exposed, so cartridge can write via bus
+    unsigned char pmem[0x20];
     bool okVblank = false;
-    bool horizontal; //set by cartridge
+    int mirror; //set by cartridge. magic number : 0 = horizontal, 1 = vertical, 2 = four pages, 3 = single page.
     Color framebuffer[256][240];
     PPU();
     
@@ -74,5 +79,6 @@ public:
     void evaluateSprites(int yy);
     //misc
     void powerON();
+    unsigned short getAddress(unsigned short addr);
 };
 #endif

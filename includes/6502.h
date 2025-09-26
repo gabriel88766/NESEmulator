@@ -16,6 +16,7 @@ private:
     Bus *bus;
 public:
     bool nmi_pin = false;
+    bool delay_nmi = false; //if write to $2000 while bit 7 of $2002 is 1 
     CPU(){
         this->powerON();
     }

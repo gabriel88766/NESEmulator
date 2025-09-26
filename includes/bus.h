@@ -33,8 +33,6 @@ public:
     void connectAPU(APU *apu);
     unsigned char readAddress(unsigned short address);
     void writeAddress(unsigned short address, unsigned char value);
-    long long int getCycles();
-    void setPPUHorizontal(bool value);
     unsigned char readCartridge(unsigned short address);
     void writeCartridge(unsigned short address, unsigned char value);
 };

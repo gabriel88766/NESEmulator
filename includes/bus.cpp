@@ -84,19 +84,9 @@ void Bus::writeAddress(unsigned short address, unsigned char value){
             }
         }else apu->writeMemory(address & 0x1F, value);
     }else if(address >= 0x6000){
-        // printf("here\n");
         cartridge->writeMemory(address, value);
     }
 }
-
-long long Bus::getCycles(){
-    return cpu->total_cycles;
-}
-
-void Bus::setPPUHorizontal(bool value){
-    ppu->horizontal = value;
-}
-
 
 //this won't handle any error
 unsigned char Bus::readCartridge(unsigned short address){
