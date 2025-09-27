@@ -1,5 +1,5 @@
 # NESEmulator
-In development: NES Emulator - CPP.
+In development, but mostly working. NES Emulator - CPP. \
 TODO: mappers and improve APU
 
 [1] Used to implement all instructions and addressing modes \
@@ -58,5 +58,6 @@ build/bin/emuNES
 
 - On Windows, if SDL was built as a shared library, copy SDL2.dll to build/bin so the binary runs.
 - On Linux, the default generator is sufficient.
-- On macOS, to be tested yet. 
+- On macOS, to be tested yet, but fully working on windows and linux.
 - After editing source files, just run `cmake --build build` to rebuild.
+- Not intending to make a release, but would do if anyone want.

@@ -96,7 +96,9 @@ void PPU::PPUSCROLL(){
         if(wreg == 0){
             treg &= 0x7FE0;
             treg |= value >> 3;
+            sx -= xreg;
             xreg = value & 7;
+            sx += xreg; //fine x update inside line.
         }else{
             treg &= 0xC1F;
             treg |= (value & 7) << 12;
@@ -109,6 +111,7 @@ void PPU::PPUSCROLL(){
 void PPU::PPUADDR(){
     if(is_read) retVal = openbus;
     else{
+        // printf("addr %d %d, w = %d, a = %02X\n", yy, xx, wreg, value);
         if(wreg == 0){
             int ob = regs[7] & 0x10;
             regs[7] = value; //high byte
@@ -120,8 +123,7 @@ void PPU::PPUADDR(){
             treg &= 0x7F00;
             treg |= value;
             vreg = treg;
-            evaluateScrollX();
-            evaluateScrollY();
+            evaluateScroll();
         }
         wreg ^= 1;
     }
@@ -131,6 +133,7 @@ void PPU::PPUADDR(){
 
 
 void PPU::PPUDATA(){
+    // printf("wr %d %d == %04X  %02X\n", yy, xx, vreg, value);
     int inc = regs[0] & 0x4 ? 32 : 1;
     unsigned short addr = vreg & 0x3FFF;
     if(is_read){
@@ -161,7 +164,7 @@ void PPU::PPUDATA(){
     }
     int ob = vreg & 0x1000;
     vreg += inc;
-    vreg %= 0x4000;
+    // vreg %= 0x4000;
     if((vreg & 0x1000) == 0x1000 && ob == 0) bus->cartridge->Clockmm3();
     evaluateScroll();
 }
@@ -235,11 +238,13 @@ void PPU::move(){
         unsigned short res = bg;
         for(auto [cl, hid] : spr[xx]){
             if(cl != 0){
-                if(hid && bg !=00) res = bg;
+                if(hid && bg != 0) res = bg;
                 else res = cl;
             }
         }
-        framebuffer[xx][yy] = color_pallete[regs[1] >> 5][pmem[res]];
+        unsigned char color = pmem[res];
+        if(regs[1] & 1) color &= 0x30;
+        framebuffer[xx][yy] = color_pallete[regs[1] >> 5][color];
         sx++;
     }
     
@@ -278,7 +283,7 @@ void PPU::move(){
         okVblank = true;
         if(regs[1] & 0x18) vreg = treg;
     }
-    if(xx == 260 && (yy <= 240)){
+    if(xx == 260 && (yy < 240 || yy == 261)){ //not correct but working.
         if((regs[1] & 0x18)) bus->cartridge->Clockmm3();
     }
     if(yy == 261 && xx == 339){
@@ -357,11 +362,11 @@ void PPU::evaluateSprites(int yy){
         j = ry - y;
         unsigned char bytesl, bytesr;
         if(j < 8){
-            bytesl = bus->readCartridge(offset+j);
-            bytesr = bus->readCartridge(offset+j+8);
+            bytesl = bus->cartridge->readMemory(offset+j);
+            bytesr = bus->cartridge->readMemory(offset+j+8);
         }else{
-            bytesl = bus->readCartridge(offset+8+j); 
-            bytesr = bus->readCartridge(offset+16+j);
+            bytesl = bus->cartridge->readMemory(offset+8+j); 
+            bytesr = bus->cartridge->readMemory(offset+16+j);
         }
         for(int k=0;k<8;k++){
             unsigned curColor = (bytesl & (1 << (7-k)))? 1 : 0;
@@ -406,7 +411,8 @@ unsigned short PPU::getAddress(unsigned short addr){
             //do nothing
             break;
         case 3:
-            addr &= 0x3FFF;
+            addr &= 0x3FF;
+            break;
     }
     return addr;
 }

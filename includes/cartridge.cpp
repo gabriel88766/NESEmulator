@@ -42,7 +42,7 @@ bool Cartridge::read(const char *filename){
         prg_banks = new unsigned char[0x4000 * header[4]];
         chr_banks = new unsigned char[0x2000 * header[5]];
         prg_rom = new unsigned char*[8];
-        prg_ram = new unsigned char[0x2000];
+        prg_ram = new unsigned char[0x8000];
         chr_rom = new unsigned char*[8];
         chr_ram = new unsigned char[0x2000];
         input.read((char *)prg_banks, 0x4000 * header[4]);
@@ -63,6 +63,8 @@ bool Cartridge::read(const char *filename){
         switch(mapper){
             case 0:
                 break;
+            case 1:
+                for(int i=4;i<8;i++) prg_rom[i] = prg_banks + (header[4] - 1) * 0x4000 + 0x1000 * (i-4);
             case 2:
                 for(int i=0;i<4;i++) prg_rom[i] = prg_banks + 0x1000 * i;
                 for(int i=4;i<8;i++) prg_rom[i] = prg_banks + (header[4] - 1) * 0x4000 + 0x1000 * (i-4);
@@ -81,13 +83,7 @@ bool Cartridge::read(const char *filename){
                 if(header[6] & 0x08){ bus->ppu->mirror = bus->ppu->FOUR_SCREEN; }
                 break;
             case 185:
-                if(header[4] == 2){
-                    for(int i=0;i<8;i++) prg_rom[i] = prg_banks + 0x1000 * i;
-                }else if(header[4] == 1){
-                    for(int i=0;i<4;i++) prg_rom[i] = prg_banks + 0x1000 * i;
-                    for(int i=4;i<8;i++) prg_rom[i] = prg_banks + 0x1000 * (i - 4);
-                }
-                for(int i=0;i<8;i++) chr_rom[i] = chr_banks + 0x400 * i;
+                //nothing to do, already mounted.
                 break;
             default:
                 return false;
