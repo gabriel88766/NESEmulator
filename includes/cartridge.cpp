@@ -24,7 +24,6 @@ bool Cartridge::read(const char *filename){
     input.read( (char*)header, 16 );
     ram = false;
     if(header[0] = 'N' && header[1] == 'E' && header[2] == 'S' && header[3] == 0x1A){
-        //TODO: assert iNes, this emulator isn't indented to support NES 2.0
         mapper = (header[7] & 0xF0) | (header[6] >> 4);
         if(header[6] & 1){
             bus->ppu->mirror = bus->ppu->VERTICAL;
@@ -64,7 +63,9 @@ bool Cartridge::read(const char *filename){
             case 0:
                 break;
             case 1:
+                for(int i=0;i<4;i++) prg_rom[i] = prg_banks + 0x1000 * i;
                 for(int i=4;i<8;i++) prg_rom[i] = prg_banks + (header[4] - 1) * 0x4000 + 0x1000 * (i-4);
+                break;
             case 2:
                 for(int i=0;i<4;i++) prg_rom[i] = prg_banks + 0x1000 * i;
                 for(int i=4;i<8;i++) prg_rom[i] = prg_banks + (header[4] - 1) * 0x4000 + 0x1000 * (i-4);
@@ -122,6 +123,70 @@ void Cartridge::writeMemory(unsigned short address, unsigned char value){
     }else if(address >= 0x8000){
         //bankswitch?
         switch(mapper){
+            case 1:{
+                if(value & 0x80){
+                    reg1 = 0;
+                    for(int i=4;i<8;i++) prg_rom[i] = prg_banks + (header[4] - 1) * 0x4000 + 0x1000 * (i-4);
+                    ctrl1 |= 0xC;
+                }
+                else{
+                    unsigned char val = reg1 & 7;
+                    if(value & 1){
+                        reg1 |= 1 << (val + 3);
+                        
+                    }
+                    reg1++;
+                    if(val == 4){
+                        //then reg1 is ready
+                        unsigned char rv = (reg1 & 0xF8) >> 3;
+                        if(address <= 0x9FFF){
+                            ctrl1 = rv;
+                            int v1 = ctrl1 & 3;
+                            if(v1 == 0 || v1 == 1) bus->ppu->mirror = bus->ppu->SINGLE_SCREEN;
+                            else if(v1 == 2) bus->ppu->mirror = bus->ppu->VERTICAL;
+                            else bus->ppu->mirror = bus->ppu->HORIZONTAL;
+                            int v2 = (ctrl1 >> 2) & 3;
+                            if(v2 == 2){
+                                for(int i=0;i<4;i++) prg_rom[i] = prg_banks + 0x1000 * i;
+                            }else if(v2 == 3){
+                                for(int i=4;i<8;i++) prg_rom[i] = prg_banks + (header[4] - 1) * 0x4000 + 0x1000 * (i-4);
+                            }
+                        }else if(address <= 0xBFFF){
+                            int v1 = ctrl1 & 0x10;
+                            if(v1){
+                                if(header[5]) for(int i=0;i<4;i++) chr_rom[i] = chr_banks + rv * 0x1000 + 0x400 * i;
+                                else for(int i=0;i<4;i++) chr_rom[i] = chr_ram + rv * 0x1000 + 0x400 * i;
+                            }else{
+                                rv &= 0x1E;
+                                if(header[5]) for(int i=0;i<8;i++) chr_rom[i] = chr_banks + rv * 0x1000 + 0x400 * i;
+                                else for(int i=0;i<8;i++) chr_rom[i] = chr_ram + rv * 0x1000 + 0x400 * i;
+                            }
+                        }else if(address <= 0xDFFF){
+                            int v1 = ctrl1 & 0x10;
+                            
+                            if(v1){
+                                if(header[5]) for(int i=0;i<4;i++) chr_rom[i+4] = chr_banks + rv * 0x1000 + 0x400 * i;
+                                else for(int i=0;i<4;i++) chr_rom[i+4] = chr_ram + rv * 0x1000 + 0x400 * i;
+                            }
+                        }else{
+                            int v1 = (ctrl1 >> 2) & 3;
+                            if(v1 == 0 || v1 == 1){
+                                rv &= 0x0E;
+                                for(int i=0;i<8;i++) prg_rom[i] = prg_banks + rv * 0x4000 + 0x1000 * i;
+                            }else{
+                                rv &= 0x0F;
+                                if(v1 == 2){
+                                    for(int i=0;i<4;i++) prg_rom[i+4] = prg_banks + rv * 0x4000 + 0x1000 * i;
+                                }else{
+                                    for(int i=0;i<4;i++) prg_rom[i] = prg_banks + rv * 0x4000 + 0x1000 * i;
+                                }
+                            }
+                        }
+                        reg1 = 0;
+                    }
+                }
+                break;
+            }
             case 2:{
                 int val;
                 if(header[5] <= 8) val = value & 7;
@@ -131,7 +196,8 @@ void Cartridge::writeMemory(unsigned short address, unsigned char value){
             }
             case 3:{
                 int val;
-                if(header[5] <= 4) val = value & 3;
+                if(header[5] <= 2) val = value & 1;
+                else if(header[5] <= 4) val = value & 3;
                 else if(header[5] <= 8) val = value & 7;
                 else val = value & 0xF;
                 for(int i=0;i<8;i++) chr_rom[i] = chr_banks + val * 0x2000 + 0x400 * i;

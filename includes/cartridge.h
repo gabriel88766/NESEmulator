@@ -25,6 +25,10 @@ private:
     int rlirq4;
     int cnt4;
     bool reload = false;
+
+    //mapper 1
+    unsigned char ctrl1 = 0xC;
+    unsigned char reg1 = 0; //lower 3 bits store the next bit, upper 5 bits store the value.
 public:
     bool I = false;
     bool ram = false; //accessed by bus for openbus behavior
