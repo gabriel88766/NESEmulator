@@ -21,7 +21,6 @@ set(HEADERS
     includes/ppu.h
     includes/cartridge.h
     includes/apu.h
-    includes/pallete.h
     vendored/tinyfiledialogs/tinyfiledialogs.h
 )
 
