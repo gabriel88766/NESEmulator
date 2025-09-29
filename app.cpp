@@ -23,13 +23,13 @@ static Cartridge cartridge;
 static PPU ppu;
 static APU apu;
 
-bool wait = false;
+int wait = 0;
 double sampleRate = 44100.0;
 
 void audio_callback(void* userdata, Uint8* stream, int length) {
-    // wait = true;
+    wait = 1;
     apu.getSampling((Uint16*) stream, length / sizeof(Sint16), sampleRate);
-    // wait = false;
+    wait = 0;
 }
 
 
