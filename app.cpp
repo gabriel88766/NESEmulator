@@ -37,12 +37,7 @@ void audio_callback(void* userdata, Uint8* stream, int length) {
 int main(int argc, char** args){
     // freopen("testROM/logs", "w", stdout);
     if (SDL_Init( SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) < 0) {
-        SDL_ShowSimpleMessageBox(
-            SDL_MESSAGEBOX_ERROR, // Flags (e.g., error icon)
-            "Error initializing SDL:",             // Title
-            SDL_GetError(), // Message
-            NULL                  // Parent window (can be NULL)
-        );
+		cout << "Error initializing SDL: " << SDL_GetError() << endl;
 		return 1;
 	} 
 
@@ -63,12 +58,7 @@ int main(int argc, char** args){
     window = SDL_CreateWindow( "EmuNES - Click the blue button to choose the ROM", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 512, 504, SDL_WINDOW_SHOWN );
 
     if ( !window ) {
-        SDL_ShowSimpleMessageBox(
-            SDL_MESSAGEBOX_ERROR, // Flags (e.g., error icon)
-            "Error creating window: ",             // Title
-            SDL_GetError(), // Message
-            NULL                  // Parent window (can be NULL)
-        );
+		cout << "Error creating window: " << SDL_GetError()  << endl;
 		return 1;
 	}
 
