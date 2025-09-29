@@ -1,4 +1,5 @@
 #include "ppu.h"
+#include "pallete.h"
 #include <cstdio>
 #include <cstring>
 #include <cassert>
@@ -18,12 +19,10 @@ void(PPU::*register_action[])() = {
 Color color_pallete[8][64];
 
 void initColorPallete(){
-    std::ifstream input("includes/2C02G_wiki.pal", std::ios::binary);
     unsigned char *data = new unsigned char[8*64*3];
-    input.read((char *)data, 8*64*3);
     for(int i=0;i<8;i++){
         for(int j=0;j<64;j++){
-            color_pallete[i][j] = {data[i * 192 + 3 * j], data[i * 192 + 3 * j + 1], data[i * 192 + 3 * j + 2]};
+            color_pallete[i][j] = {__2C02G_wiki_pal[i * 192 + 3 * j], __2C02G_wiki_pal[i * 192 + 3 * j + 1], __2C02G_wiki_pal[i * 192 + 3 * j + 2]};
         }
     }
 }
