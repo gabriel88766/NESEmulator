@@ -685,10 +685,10 @@ void CPU::abs(){
     unsigned short low = bus->readAddress(PC++);
     unsigned short high = bus->readAddress(PC++);
     memory = low | (high << 8);
-    if(memory >= 0x4020 && memory < 0x6000){
-        memory = PC - 1;
-        bus->last_value = high;
-    }
+    // if(memory >= 0x4020 && memory < 0x6000){ //I don't know wtf is this.
+    //     memory = PC - 1;
+    //     bus->last_value = high;
+    // }
     // bus->readAddress(memory);
 }
 void CPU::absX(){

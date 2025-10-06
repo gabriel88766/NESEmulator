@@ -43,16 +43,15 @@ bool Cartridge::read(const char *filename){
         prg_rom = new unsigned char*[8];
         prg_ram = new unsigned char[0x8000];
         chr_rom = new unsigned char*[8];
-        chr_ram = new unsigned char[0x2000];
         input.read((char *)prg_banks, 0x4000 * header[4]);
         input.read((char *)chr_banks, 0x2000 * header[5]);
         if(header[5] == 0){
             ram = true;
-            for(int i=0;i<8;i++) chr_rom[i] = chr_ram + 0x400 * i;
-        }else{
-            //bank 0, standard.
+            delete[] chr_banks;
+            chr_banks = new unsigned char[0x512000]; //huge chunk of ram, enough for any game ~5MB
             for(int i=0;i<8;i++) chr_rom[i] = chr_banks + 0x400 * i;
         }
+        for(int i=0;i<8;i++) chr_rom[i] = chr_banks + 0x400 * i;
         if(header[4] >= 2){
             for(int i=0;i<8;i++) prg_rom[i] = prg_banks + 0x1000 * i;
         }else if(header[4] == 1){
@@ -63,6 +62,7 @@ bool Cartridge::read(const char *filename){
             case 0:
                 break;
             case 1:
+                ctrl1 = 0xC;
                 for(int i=0;i<4;i++) prg_rom[i] = prg_banks + 0x1000 * i;
                 for(int i=4;i<8;i++) prg_rom[i] = prg_banks + (header[4] - 1) * 0x4000 + 0x1000 * (i-4);
                 break;
@@ -128,8 +128,7 @@ void Cartridge::writeMemory(unsigned short address, unsigned char value){
                     reg1 = 0;
                     for(int i=4;i<8;i++) prg_rom[i] = prg_banks + (header[4] - 1) * 0x4000 + 0x1000 * (i-4);
                     ctrl1 |= 0xC;
-                }
-                else{
+                }else{
                     unsigned char val = reg1 & 7;
                     if(value & 1){
                         reg1 |= 1 << (val + 3);
@@ -154,19 +153,16 @@ void Cartridge::writeMemory(unsigned short address, unsigned char value){
                         }else if(address <= 0xBFFF){
                             int v1 = ctrl1 & 0x10;
                             if(v1){
-                                if(header[5]) for(int i=0;i<4;i++) chr_rom[i] = chr_banks + rv * 0x1000 + 0x400 * i;
-                                else for(int i=0;i<4;i++) chr_rom[i] = chr_ram + rv * 0x1000 + 0x400 * i;
+                                for(int i=0;i<4;i++) chr_rom[i] = chr_banks + rv * 0x1000 + 0x400 * i;
                             }else{
                                 rv &= 0x1E;
-                                if(header[5]) for(int i=0;i<8;i++) chr_rom[i] = chr_banks + rv * 0x1000 + 0x400 * i;
-                                else for(int i=0;i<8;i++) chr_rom[i] = chr_ram + rv * 0x1000 + 0x400 * i;
+                                for(int i=0;i<8;i++) chr_rom[i] = chr_banks + rv * 0x1000 + 0x400 * i;
                             }
                         }else if(address <= 0xDFFF){
                             int v1 = ctrl1 & 0x10;
                             
                             if(v1){
-                                if(header[5]) for(int i=0;i<4;i++) chr_rom[i+4] = chr_banks + rv * 0x1000 + 0x400 * i;
-                                else for(int i=0;i<4;i++) chr_rom[i+4] = chr_ram + rv * 0x1000 + 0x400 * i;
+                                for(int i=0;i<4;i++) chr_rom[i+4] = chr_banks + rv * 0x1000 + 0x400 * i;
                             }
                         }else{
                             int v1 = (ctrl1 >> 2) & 3;
