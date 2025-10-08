@@ -283,7 +283,7 @@ void APU::Triangle(double *buffer, int length, double rate){
     if(!en[2]) isen = false;
     if((!len[2]) || (!len2)) isen = false;
     int t = ((reg[0xB] & 7) << 8) + reg[0xA];
-    if(t < 8) isen = false;
+    if(t < 4) isen = false;
     if(!isen){
         for(int j=0;j<length;j++) buffer[j] += lv2;
         return;
@@ -312,6 +312,7 @@ void APU::Noise(double *buffer, int length, double rate){
         buffer[j] += (vol[3] * rng[(int)phase[3]])/12241.0;
         phase[3] += inc_phase;
         if(phase[3] >= 4096.0) phase[3] -= 4096.0;
+        while(reg[0xE] & 0x80 && phase[3] >= 93) phase[3] -= 93;
     }
 }
 
