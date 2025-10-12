@@ -25,6 +25,8 @@ private:
     unsigned char len2;
     unsigned char dvp[5];
     unsigned char envp[5];
+    bool swp[2];
+    int tim[5];
     double lv2;
     double rng[4096];
     double aux[4096];

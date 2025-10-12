@@ -13,6 +13,7 @@ void APU::reset(){
         en[i] = false;
         phase[i] = len[i] = vol[i] = dvp[i] = envp[i] = 0;
     }
+    swp[0] = swp[1] = false;
     for(int j=0;j<4096;j++){
         rng[j] = (rand() % 32768) > 16383 ? 1 : 0;
     }
@@ -99,10 +100,7 @@ void APU::writeMemory(unsigned short address, unsigned char value){
 
 
     if(address == 1 || address == 5){
-        
-        if(!(reg[(address >> 2) << 2] & 0x10)) vol[address >> 2] = 0xF;
-        else vol[address >> 2] = (reg[(address >> 2) << 2] & 0xF);
-        dvp[address >> 2] = (((value >> 4) & 7) + 1);
+        swp[address >> 2] = true;
     }
     if(address <= 0xF && ((address & 3) == 3) && en[address >> 2]){
         len[address >> 2] = len_table[value >> 3];
@@ -117,7 +115,8 @@ void APU::writeMemory(unsigned short address, unsigned char value){
             relT = true;
         }
     }
-    
+    if(address == 2 || address == 3) tim[0] = ((reg[3] & 7) << 8) + reg[2];
+    if(address == 6 || address == 7) tim[1] = ((reg[7] & 7) << 8) + reg[6];
     if(address == 0x8){
         if(value & 0x80) relT = true;
     }
@@ -169,6 +168,11 @@ void APU::tick(){
 
 void APU::clock(){
     cnt++;
+    for(int i=0;i<2;i++){
+        if(!(reg[4*i+1] & 0x80)){
+            tim[i] = ((reg[4*i + 3] & 7) << 8) + reg[4*i+2];
+        }
+    }
     if(cntdmc != 0) cntdmc--;
     if(cntdmc == 0){
         cntdmc = dmc_table[reg[0x10] & 0xF];
@@ -218,25 +222,22 @@ void APU::envelope(){
 
 void APU::sweep(){
     for(int j=0;j<=1;j++){
+        bool isz = dvp[j] == 0;
         if(reg[4*j+1] & 0x80){
-            dvp[j]--;
-            if(dvp[j] == 0){
-                dvp[j] = (((reg[4*j+1] >> 4) & 7) + 1);
+            if(isz && tim[j] >= 8 && tim[j] <= 0x7FF){
                 int s = reg[4*j+1] & 7;
-                unsigned short val = ((reg[4*j+3] & 7) << 8) + reg[4*j+2];
-                if(reg[4*j+1] & 8){
-                    val -= (val >> s);
-                    if(j == 0) val--;
-                }else{
-                    val += (val >> s);
+                if(s){
+                    if(reg[4*j+1] & 8){
+                        tim[j] -= (tim[j] >> s);
+                        if(j == 0) tim[j]--;
+                    }else{
+                        tim[j] += (tim[j] >> s);
+                    }
                 }
-                
-                if(val >= (1 << 11)) val = 0;
-                reg[4*j+2] = val & 0xFF;
-                reg[4*j+3] &= 0xF8;
-                reg[4*j+3] |= (val >> 8);
             }
         }
+        if(isz || swp[j]) dvp[j] = (((reg[4*j+1] >> 4) & 7) + 1), swp[j] = false;
+        else dvp[j]--;
     }
 }
 
@@ -255,9 +256,8 @@ void APU::lenCounter(){
 void APU::Pulse(double *buffer, int length, double rate, int num){
     if(!en[num]) return;
     if(!len[num]) return;
-    int t = ((reg[4*num + 3] & 7) << 8) + reg[4*num+2];
-    if(t < 8) return;
-    double freq =  1789773.0/(16.0 * (t+1));
+    if(tim[num] < 8 || tim[num] > 0x7FF) return;
+    double freq =  1789773.0/(16.0 * (tim[num]+1));
     double phase_inc =  (twoPI * freq) / rate;
     int df = (reg[4*num] & 0xC0) >> 6; 
     double duty = df * 0.25;
