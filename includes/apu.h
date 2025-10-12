@@ -2,6 +2,7 @@
 #define APU_H
 
 #include "bus.h"
+#include <cstdio>
 
 class Bus;
 

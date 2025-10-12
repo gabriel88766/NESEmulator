@@ -115,7 +115,8 @@ void APU::writeMemory(unsigned short address, unsigned char value){
             relT = true;
         }
     }
-    
+    if(address == 2 || address == 3) tim[0] = ((reg[3] & 7) << 8) + reg[2];
+    if(address == 6 || address == 7) tim[1] = ((reg[7] & 7) << 8) + reg[6];
     if(address == 0x8){
         if(value & 0x80) relT = true;
     }
@@ -123,7 +124,6 @@ void APU::writeMemory(unsigned short address, unsigned char value){
 }
 
 void APU::tick(){
-    
     if(reg[0x17] & 0x80){
         if(cnt == CYCLES[1] || cnt == CYCLES[4]){
             //Length counter and sweep
@@ -167,6 +167,9 @@ void APU::tick(){
 
 void APU::clock(){
     cnt++;
+    for(int j=0;j<5;j++){
+        if(CYCLES[j] == cnt) tick();
+    }
     if(cntdmc != 0) cntdmc--;
     if(cntdmc == 0){
         cntdmc = dmc_table[reg[0x10] & 0xF];
@@ -186,9 +189,7 @@ void APU::clock(){
         }
     }
     
-    for(int j=0;j<5;j++){
-        if(CYCLES[j] == cnt) tick();
-    }
+    
 
 }
 
@@ -221,20 +222,14 @@ void APU::sweep(){
             if(dvp[j] == 0){
                 dvp[j] = (((reg[4*j+1] >> 4) & 7) + 1);
                 int s = reg[4*j+1] & 7;
-                unsigned short val = ((reg[4*j+3] & 7) << 8) + reg[4*j+2];
                 if(s){
                     if(reg[4*j+1] & 8){
-                        val -= (val >> s);
-                        if(j == 0) val--;
+                        tim[j] -= (tim[j] >> s);
+                        if(j == 0) tim[j]--;
                     }else{
-                        val += (val >> s);
+                        tim[j] += (tim[j] >> s);
                     }
                 }
-                
-                if(val >= (1 << 11)) val = 0;
-                reg[4*j+2] = val & 0xFF;
-                reg[4*j+3] &= 0xF8;
-                reg[4*j+3] |= (val >> 8);
             }
         }
     }
@@ -255,9 +250,8 @@ void APU::lenCounter(){
 void APU::Pulse(double *buffer, int length, double rate, int num){
     if(!en[num]) return;
     if(!len[num]) return;
-    int t = ((reg[4*num + 3] & 7) << 8) + reg[4*num+2];
-    if(t < 8) return;
-    double freq =  1789773.0/(16.0 * (t+1));
+    if(tim[num] < 8 || tim[num] > 0x7FF) return;
+    double freq =  1789773.0/(16.0 * (tim[num]+1));
     double phase_inc =  (twoPI * freq) / rate;
     int df = (reg[4*num] & 0xC0) >> 6; 
     double duty = df * 0.25;
