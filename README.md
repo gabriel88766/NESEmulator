@@ -60,6 +60,6 @@ build/bin/emuNES
 - On Linux, the default generator is sufficient.
 - On macOS, to be tested yet, but fully working on windows and linux.
 - After editing source files, just run `cmake --build build` to rebuild.
-- Not intending to make a release, but would do if anyone want.
 - Currently supporting mapper 0, 1, 2, 3, 4, 185, but surely not all games using these mappers. However I'm sure it is supporting over 100 games.
+- APU sounds good enough for me, but it's not properly emulated, it's is simulated instead. TODO : emulate it.
 - To play games: start = return, select = right shift, Z = B, X = A and use DOWN LEFT UP and RIGHT instead of WASD to move.
