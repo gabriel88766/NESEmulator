@@ -44,11 +44,9 @@ unsigned char APU::readMemory(unsigned short address){
 void APU::writeMemory(unsigned short address, unsigned char value){
     reg[address] = value;
     if(address == 0x00 || address == 0x04 || address == 0xC){
-        
-        if(!(value & 0x10)){
-            vol[address >> 2] = 0xF;
-            envp[address >> 2] = (value & 0xF) + 1; 
-        }else vol[address >> 2] = value & 0xF;
+        if(value & 0x10){
+            vol[address >> 2] = value & 0xF;
+        }
     }
     if(address == 0x17){
         if(value & 0x40){
@@ -103,7 +101,7 @@ void APU::writeMemory(unsigned short address, unsigned char value){
         dvp[address >> 2] = (((value >> 4) & 7) + 1);
     }
     if(address <= 0xF && ((address & 3) == 3) && en[address >> 2]){
-        len[address >> 2] = len_table[value >> 3];
+        if(en[address >> 2]) len[address >> 2] = len_table[value >> 3];
         if(address == 3 || address == 7 || address == 0xF){
             if(!(reg[address - 3] & 0x10)){
                 vol[address >> 2] = 0xF;

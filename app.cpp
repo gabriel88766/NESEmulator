@@ -81,7 +81,6 @@ int main(int argc, char** args){
     int X = 0;
     bool loaded = false;
     while (running) {
-        cout << "frame " << X++ << "\n";
         SDL_Rect button = {0, 0, 70, 25};
         Uint64 start = SDL_GetPerformanceCounter();
         SDL_Event e;
