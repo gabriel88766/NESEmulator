@@ -42,13 +42,9 @@ unsigned char Bus::readAddress(unsigned short address){
             }
         }else if(address == 0x4015) return apu->readMemory(0x15);
         else return ret = last_value;
-    }else if(address < 0x6000){
-        ret = last_value;
     }else{
-        //cartridge area
-        if(address >= 0x6000){
-            ret = cartridge->readMemory(address);
-        }
+        //cartridge area >= 0x4020
+        ret = cartridge->readMemory(address);
     }
     if(open){
         ret &= ~open;
@@ -83,7 +79,7 @@ void Bus::writeAddress(unsigned short address, unsigned char value){
                 regbut2 = button2;
             }
         }else apu->writeMemory(address & 0x1F, value);
-    }else if(address >= 0x6000){
+    }else if(address >= 0x4020){
         cartridge->writeMemory(address, value);
     }
 }
