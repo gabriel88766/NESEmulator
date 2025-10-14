@@ -1,3 +1,7 @@
+//Warning:
+//This APU is not sending samples based on cycles
+//That means if a game change the samples mid frame, it should
+//not be played. 
 #include "apu.h"
 #include <iostream>
 #include <math.h>
