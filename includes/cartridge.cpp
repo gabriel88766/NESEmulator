@@ -23,7 +23,7 @@ bool Cartridge::read(const char *filename){
     header = new unsigned char[16];
     input.read( (char*)header, 16 );
     ram = false;
-    if(header[0] = 'N' && header[1] == 'E' && header[2] == 'S' && header[3] == 0x1A){
+    if(header[0] == 'N' && header[1] == 'E' && header[2] == 'S' && header[3] == 0x1A){
         mapper = (header[7] & 0xF0) | (header[6] >> 4);
         if(header[6] & 1){
             bus->ppu->mirror = bus->ppu->VERTICAL;

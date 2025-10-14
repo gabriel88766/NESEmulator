@@ -235,7 +235,9 @@ void PPU::move(){
             regs[2] |= 0x40; 
         }
         unsigned short res = bg;
-        for(auto [cl, hid] : spr[xx]){
+        for(int i=0;i<spr[xx].size();i++){
+            unsigned short &cl = spr[xx][i].first;
+            bool &hid = spr[xx][i].second;
             if(cl != 0){
                 if(hid && bg != 0) res = bg;
                 else res = cl;
@@ -332,10 +334,26 @@ void PPU::evaluateSprites(int yy){
         sprzr[x] = false;
         spr[x].clear();
     }
-    if(!(regs[1] & 0x10)) return;
+    if(!(regs[1] & 0x18)) return;
     bool mode = regs[0] & 0x20 ? true : false;//true means 8x16, false means 8x8
+    unsigned long long sprites = 0; //sprites on this line
+    for(int i=0;i<=63;i++){
+        unsigned char addr = regs[3] + 4*i;
+        int ysz = mode ? 16 : 8;
+        unsigned char y = OAM[addr] + 1;
+        if(!y) continue;
+        if(yy >= y && y + ysz - 1 >= yy){
+            if(__builtin_popcountll(sprites) == 8){
+                regs[2] |= 0x20;
+                break;
+            }else sprites |= (1LL << i);
+        }
+    }
+    if(!(regs[1] & 0x10)) return;
+    
     unsigned short table = (regs[0] & 8)  && (!mode) ? 0x1000 : 0; 
     for(int i=63;i>=0;i--){
+        if(!(sprites & (1LL << i))) continue;
         unsigned char addr = regs[3] + 4*i;
         unsigned short offset = table; 
         int ysz;
