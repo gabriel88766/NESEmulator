@@ -21,14 +21,16 @@ private:
     bool relT = false;
     bool en[5];
     double phase[5];
-    unsigned char len[5];
-    unsigned char vol[5];
+    unsigned short len[5]; //len dmc is bigger
     unsigned char len2;
-    unsigned char dvp[5];
-    unsigned char envp[5];
+    unsigned char dvswp[5];
     bool swp[2];
+
+    unsigned char evp[5]; //decay level of envelope
+    unsigned char dvevp[5]; // divider of envelope.
+    bool startFlag[5];
     int tim[5];
-    double lv2;
+    double lvt;
     double rng[4096];
     double aux[4096];
     double aux2[4096];

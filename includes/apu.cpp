@@ -10,8 +10,8 @@ void APU::reset(){
     for(int i=0;i<0x20;i++) reg[i] = 0;
     cnt = 0;
     for(int i=0;i<5;i++){
-        en[i] = false;
-        phase[i] = len[i] = vol[i] = dvp[i] = envp[i] = 0;
+        startFlag[i] = en[i] = false;
+        phase[i] = len[i] = dvswp[i] = evp[i] = dvevp[i] = 0;
     }
     for(int j=0;j<4096;j++){
         rng[j] = (rand() % 32768) > 16383 ? 1 : 0;
@@ -43,29 +43,44 @@ unsigned char APU::readMemory(unsigned short address){
 }   
 void APU::writeMemory(unsigned short address, unsigned char value){
     reg[address] = value;
-    if(address == 0x00 || address == 0x04 || address == 0xC){
-        if(value & 0x10){
-            vol[address >> 2] = value & 0xF;
+    //sweep
+    if(address == 1 || address == 5){    
+        dvswp[address >> 2] = (((value >> 4) & 7) + 1);
+    }
+    if(address <= 0xF && ((address & 3) == 3)){
+        if(en[address >> 2]){
+            len[address >> 2] = len_table[value >> 3];
+        }
+        if(address == 3 || address == 7 || address == 0xF){
+            startFlag[address >> 2] = true;
+        }
+        if(address == 3 || address == 7){
+            phase[address >> 2] = 0;
+        }
+        if(address == 0xB){
+            relT = true;
         }
     }
-    if(address == 0x17){
-        if(value & 0x40){
-            F = false;
-        } 
-        cnt = 0;
-        if(value & 0x80){
-            sweep();
-            lenCounter();
-            linearCounter();
-            envelope();
-        }
+    if(address == 2 || address == 3) tim[0] = ((reg[3] & 7) << 8) + reg[2];
+    if(address == 6 || address == 7) tim[1] = ((reg[7] & 7) << 8) + reg[6];
+    if(address == 0x8){
+        if(value & 0x80) relT = true;
     }
+    
+
+    //DMC:
+    if(address & 0x10){
+        if(!(value & 0x80)) I = false;  
+    }
+    if(address == 0x11) outp = reg[address] & 0x7F;
+    
     if(address == 0x15){
         I = false;
-        if(value &(1 << 4)){
+        if(value & (1 << 4)){
             if(len[4] <= 8){
+                addr = 0xC000 + 64*reg[0x12];
                 phase[4] = 0;
-                len[4] += size = 8*((reg[address] << 4) + 1);
+                len[4] += size = 8*((reg[0x13] << 4) + 1);
                 cntdmc = dmc_table[reg[0x10] & 0xF];
             }
             en[4] = true;
@@ -83,42 +98,19 @@ void APU::writeMemory(unsigned short address, unsigned char value){
             }
         }
     }
-    //DMC:
-    if(address & 0x10){
-        if(!(value & 0x80)) I = false;  
-    }
-    if(address == 0x11) outp = reg[address] & 0x7F;
-    if(address == 0x12) addr = 0xC000 + 64*reg[address];
-    if(address == 0x13){
-       
-        len[4] = size = 8*((reg[address] << 4) + 1);
-        cntdmc = dmc_table[reg[0x10] & 0xF];
-    }
 
-
-    if(address == 1 || address == 5){
-        
-        dvp[address >> 2] = (((value >> 4) & 7) + 1);
-    }
-    if(address <= 0xF && ((address & 3) == 3) && en[address >> 2]){
-        if(en[address >> 2]) len[address >> 2] = len_table[value >> 3];
-        if(address == 3 || address == 7 || address == 0xF){
-            if(!(reg[address - 3] & 0x10)){
-                vol[address >> 2] = 0xF;
-                envp[address >> 2] = (reg[address - 3] & 0xF);   
-                phase[address >> 2] = 0;
-            }
-        }
-        if(address == 0xB){
-            relT = true;
+    if(address == 0x17){
+        if(value & 0x40){
+            F = false;
+        } 
+        cnt = 0;
+        if(value & 0x80){
+            sweep();
+            lenCounter();
+            linearCounter();
+            envelope();
         }
     }
-    if(address == 2 || address == 3) tim[0] = ((reg[3] & 7) << 8) + reg[2];
-    if(address == 6 || address == 7) tim[1] = ((reg[7] & 7) << 8) + reg[6];
-    if(address == 0x8){
-        if(value & 0x80) relT = true;
-    }
-    
 }
 
 void APU::tick(){
@@ -133,10 +125,7 @@ void APU::tick(){
             envelope();
             linearCounter();
         }
-
-        
         if(cnt == CYCLES[4]){
-            
             cnt = 0;
         }
     }else{
@@ -149,7 +138,6 @@ void APU::tick(){
             lenCounter();
         }
         if(cnt == CYCLES[3]){
-            
             //interruption
             if(!(reg[0x17] & 0x40)){
                 F = true;
@@ -174,12 +162,12 @@ void APU::clock(){
         
         if(len[4] >= 1){
             len[4]--;
-            if(len[4] % 8 == 0){
+            if((len[4] % 8 == 0) && len[4]){
                 bus->cpu->newCycle(); bus->cpu->newCycle(); bus->cpu->newCycle();
             }
             if(len[4] == 0){
                 if(reg[0x10] & 0x40){
-                    len[4] = (reg[0x13] << 4) + 1;
+                    len[4] = 8*((reg[0x15] << 4) + 1);
                 }else if(reg[0x10] & 0x80){
                     I = true;
                 }
@@ -198,17 +186,20 @@ void APU::linearCounter(){
 void APU::envelope(){
     for(int j=0;j<=3;j++){
         if(j == 2) continue;
-        if(!(reg[4*j] & 0x10)){
-            //v decrement'
-            
-            if(envp[j] == 0){
-                envp[j] = (reg[4*j] & 0xF);  
-                if(vol[j] == 0){
-                    if(reg[4*j] & 0x20) vol[j] |= 0xF;
-                }else{
-                    vol[j]--;
+        if(startFlag[j]){
+            startFlag[j] = false;
+            evp[j] = 15;
+            dvevp[j] = (reg[4*j] & 0xF);
+        }else{
+            if(dvevp[j] == 0){
+                dvevp[j] = (reg[4*j] & 0xF);
+                if(evp[j] != 0) evp[j]--;
+                else{
+                    if(reg[4*j] & 0x20) evp[j] = 15;
                 }
-            }else envp[j]--;
+            }else{
+                dvevp[j]--;
+            }
         }
     }
 }
@@ -216,11 +207,11 @@ void APU::envelope(){
 void APU::sweep(){
     for(int j=0;j<=1;j++){
         if(reg[4*j+1] & 0x80){
-            dvp[j]--;
-            if(dvp[j] == 0){
-                dvp[j] = (((reg[4*j+1] >> 4) & 7) + 1);
+            dvswp[j]--;
+            if(dvswp[j] == 0){
+                dvswp[j] = (((reg[4*j+1] >> 4) & 7) + 1);
                 int s = reg[4*j+1] & 7;
-                if(s){
+                if(s && tim[j] >= 8 && tim[j] <= 0x7FF){
                     if(reg[4*j+1] & 8){
                         tim[j] -= (tim[j] >> s);
                         if(j == 0) tim[j]--;
@@ -254,8 +245,9 @@ void APU::Pulse(double *buffer, int length, double rate, int num){
     int df = (reg[4*num] & 0xC0) >> 6; 
     double duty = df * 0.25;
     if(df == 0) duty = 0.125;
+    int vol = (reg[4*num] & 0x10 ? reg[4*num] & 0xF : evp[num]);
     for(int j=0;j<length;j++){
-        if(phase[num] >= twoPI * duty) buffer[j] += vol[num]; 
+        if(phase[num] >= twoPI * duty) buffer[j] += vol; 
         phase[num] += phase_inc;
         if (phase[num] >= twoPI)
             phase[num] -= twoPI;
@@ -277,7 +269,7 @@ void APU::Triangle(double *buffer, int length, double rate){
     int t = ((reg[0xB] & 7) << 8) + reg[0xA];
     if(t < 4) isen = false;
     if(!isen){
-        for(int j=0;j<length;j++) buffer[j] += lv2;
+        for(int j=0;j<length;j++) buffer[j] += lvt;
         return;
     }
     
@@ -286,7 +278,7 @@ void APU::Triangle(double *buffer, int length, double rate){
     for(int j=0;j<length;j++){
         if(isen){
             //converting to int makes it sound more NES like.
-            buffer[j] += lv2 = ( (int)(15.0  * fabs((phase[2] - PI)/PI))/8227.0);
+            buffer[j] += lvt = ( (int)(15.0  * fabs((phase[2] - PI)/PI))/8227.0);
         }
         phase[2] += phase_inc;
         if (phase[2] >= twoPI)
@@ -299,12 +291,13 @@ void APU::Noise(double *buffer, int length, double rate){
     if((!en[3]) || (!len[3])){
         return;
     }
+    int vol = (reg[0xC] & 0x10 ? reg[0xC] & 0xF : evp[3]);
     double inc_phase = (1789773.0 / noise_table[reg[0xE] & 0xF]) / rate;
     for(int j=0;j<length;j++){
-        buffer[j] += (vol[3] * rng[(int)phase[3]])/12241.0;
+        buffer[j] += (vol * rng[(int)phase[3]])/12241.0;
         phase[3] += inc_phase;
         if(phase[3] >= 4096.0) phase[3] -= 4096.0;
-        while(reg[0xE] & 0x80 && phase[3] >= 93) phase[3] -= 93;
+        while((reg[0xE] & 0x80) && phase[3] >= 93) phase[3] -= 93;
     }
 }
 
@@ -321,7 +314,9 @@ void APU::DMC(double *buffer, int length, double rate){
                 phase[4] = 0;
                 if(!(reg[0x10] & 0x40)) {
                     size = 0;
-                    // outp = reg[0x11] & 0x7F; //testing
+                }else{
+                    addr = 0xC000 + 64*reg[0x12];
+                    size = 8*((reg[0x13] << 4) + 1);
                 }
             }else{
                 unsigned short t1 = addr + curv/8;
