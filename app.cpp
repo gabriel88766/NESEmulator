@@ -35,7 +35,7 @@ void audio_callback(void* userdata, Uint8* stream, int length) {
 
 
 int main(int argc, char** args){
-    freopen("testROM/logs4", "w", stdout);
+    // freopen("testROM/logs4", "w", stdout);
     if (SDL_Init( SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) < 0) {
 		cout << "Error initializing SDL: " << SDL_GetError() << endl;
 		return 1;
@@ -81,7 +81,7 @@ int main(int argc, char** args){
     int X = 0;
     bool loaded = false;
     while (running) {
-        cout << "frame" << ++X << "\n";
+        // cout << "frame" << ++X << "\n";
         SDL_Rect button = {0, 0, 70, 25};
         Uint64 start = SDL_GetPerformanceCounter();
         SDL_Event e;

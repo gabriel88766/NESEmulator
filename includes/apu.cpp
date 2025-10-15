@@ -71,13 +71,11 @@ void APU::writeMemory(unsigned short address, unsigned char value){
         if(value & 0x80) relT = true;
     }
     
-    if(address >= 0x10 &&  address <= 0x15) printf("line %d addr %02X value %02X cntdmc %d\n", bus->ppu->yy, address, value, cntdmc);
     //DMC:
     if(address & 0x10){
         if(!(value & 0x80)) I = false;  
     }
     if(address == 0x11) outp = reg[address] & 0x7F;
-    
     if(address == 0x15){
         I = false;
         if(value & (1 << 4)){
@@ -164,7 +162,6 @@ void APU::clockdmc(){
                     restart_dmc = true;
                 }else if(reg[0x10] & 0x80){
                     I = true;
-                    printf("irq\n");
                 }
             }else{
                 for(int i=0;i<3;i++) bus->cpu->newCycle();
@@ -193,7 +190,6 @@ void APU::clock(){
     if(cntdmc == 0){
         cntdmc = dmc_table[reg[0x10] & 0xF] + 0.01; //It's correct, don't change!!!
         clockdmc();
-        printf("ndmc %d %d %d\n", bus->ppu->yy, bus->ppu->xx, len[4]);
         
         
         

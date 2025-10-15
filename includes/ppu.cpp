@@ -350,7 +350,6 @@ void PPU::evaluateSprites(int yy){
         if(yy >= y && y + ysz - 1 >= yy){
             if(__builtin_popcountll(sprites) == 8){
                 regs[2] |= 0x20;
-                printf("overflow, %d\n", yy);
                 break;
             }else sprites |= (1LL << i);
         }
