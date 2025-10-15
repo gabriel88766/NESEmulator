@@ -35,7 +35,7 @@ unsigned char APU::readMemory(unsigned short address){
     if(address == 0x15){
         unsigned char ans = 0;
         for(int j=0;j<=4;j++){
-            if(en[j] && ((len[j] >= 8) || restart_dmc)) ans |= (1 << j);
+            if(en[j] && (len[j] >= 1)) ans |= (1 << j);
         }
         if(F){
              ans |= (1 << 6);
