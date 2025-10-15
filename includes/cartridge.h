@@ -37,6 +37,10 @@ public:
     bool read(const char *filename);
     unsigned char readMemory(unsigned short address);
     void writeMemory(unsigned short address, unsigned char value);
+
+    //Functions helper to mappers
+    void loadPrgLB();
+    void uxromPrg(unsigned char value);
     void Clockmm3();
 };
 

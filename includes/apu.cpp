@@ -20,7 +20,7 @@ void APU::reset(){
     for(int j=0;j<4096;j++){
         rng[j] = (rand() % 32768) > 16383 ? 1 : 0;
     }
-    len2 = remain = cntdmc = size = addr = 0;
+    len2  = cntdmc = size = addr = 0;
     outp = 0;
     relT = F = I = false;
 }
@@ -35,7 +35,7 @@ unsigned char APU::readMemory(unsigned short address){
     if(address == 0x15){
         unsigned char ans = 0;
         for(int j=0;j<=4;j++){
-            if(en[j] && len[j]) ans |= (1 << j);
+            if(en[j] && ((len[j] >= 8) || restart_dmc)) ans |= (1 << j);
         }
         if(F){
              ans |= (1 << 6);
@@ -71,7 +71,7 @@ void APU::writeMemory(unsigned short address, unsigned char value){
         if(value & 0x80) relT = true;
     }
     
-
+    if(address >= 0x10 &&  address <= 0x15) printf("line %d addr %02X value %02X cntdmc %d\n", bus->ppu->yy, address, value, cntdmc);
     //DMC:
     if(address & 0x10){
         if(!(value & 0x80)) I = false;  
@@ -81,17 +81,15 @@ void APU::writeMemory(unsigned short address, unsigned char value){
     if(address == 0x15){
         I = false;
         if(value & (1 << 4)){
-            if(len[4] <= 8){
-                addr = 0xC000 + 64*reg[0x12];
-                phase[4] = 0;
-                len[4] += size = 8*((reg[0x13] << 4) + 1);
-                cntdmc = dmc_table[reg[0x10] & 0xF];
+            if(len[4] < 8){
+                restart_dmc = true;
             }
             en[4] = true;
         }else{
             size = 0;
             len[4] %= 8;
             en[4] = false;
+            restart_dmc = false;
         }
         for(int j=0;j<=3;j++){
             if(value & (1 << j)){
@@ -155,28 +153,50 @@ void APU::tick(){
     }
 }
 
+void APU::clockdmc(){
+    shiftdmc++;
+    if(shiftdmc == 8){
+        shiftdmc = 0;
+        if(len[4] >= 1){
+            len[4]--;
+            if(len[4] == 0){
+                if(reg[0x10] & 0x40){
+                    restart_dmc = true;
+                }else if(reg[0x10] & 0x80){
+                    I = true;
+                    printf("irq\n");
+                }
+            }else{
+                for(int i=0;i<3;i++) bus->cpu->newCycle();
+            }
+        }else enddmc = true;
+    }
+}
 void APU::clock(){
     cnt++;
     for(int j=0;j<5;j++){
         if(CYCLES[j] == cnt) tick();
     }
-    if(cntdmc != 0) cntdmc--;
-    if(cntdmc == 0){
-        cntdmc = dmc_table[reg[0x10] & 0xF];
-        
-        if(len[4] >= 1){
-            len[4]--;
-            if((len[4] % 8 == 0) && len[4]){
-                bus->cpu->newCycle(); bus->cpu->newCycle(); bus->cpu->newCycle();
-            }
-            if(len[4] == 0){
-                if(reg[0x10] & 0x40){
-                    len[4] = 8*((reg[0x15] << 4) + 1);
-                }else if(reg[0x10] & 0x80){
-                    I = true;
-                }
-            }
+    
+    if(restart_dmc){
+        restart_dmc = false; 
+        size = 8*((reg[0x13] << 4) + 1);
+        if(enddmc){
+            len[4] = (reg[0x13] << 4);
         }
+        else len[4] = ((reg[0x13] << 4) + 1);
+        phase[4] = 0;
+        addr = 0xC000 + 64*reg[0x12];
+        enddmc = false;
+    }
+    if(cntdmc != 0) cntdmc--;//It's correct, don't change!!!
+    if(cntdmc == 0){
+        cntdmc = dmc_table[reg[0x10] & 0xF] + 0.01; //It's correct, don't change!!!
+        clockdmc();
+        printf("ndmc %d %d %d\n", bus->ppu->yy, bus->ppu->xx, len[4]);
+        
+        
+        
     }
     
     

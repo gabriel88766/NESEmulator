@@ -63,12 +63,10 @@ bool Cartridge::read(const char *filename){
                 break;
             case 1:
                 ctrl1 = 0xC;
-                for(int i=0;i<4;i++) prg_rom[i] = prg_banks + 0x1000 * i;
-                for(int i=4;i<8;i++) prg_rom[i] = prg_banks + (header[4] - 1) * 0x4000 + 0x1000 * (i-4);
+                loadPrgLB();
                 break;
             case 2:
-                for(int i=0;i<4;i++) prg_rom[i] = prg_banks + 0x1000 * i;
-                for(int i=4;i<8;i++) prg_rom[i] = prg_banks + (header[4] - 1) * 0x4000 + 0x1000 * (i-4);
+                loadPrgLB();
                 break;
             case 3:
                 if(header[4] == 2){
@@ -82,6 +80,9 @@ bool Cartridge::read(const char *filename){
                 for(int i=4;i<8;i++) prg_rom[i] = prg_banks + (header[4] - 1) * 0x4000 + 0x1000 * (i-4);
                 //Rad Racer II
                 if(header[6] & 0x08){ bus->ppu->mirror = bus->ppu->FOUR_SCREEN; }
+                break;
+            case 71:
+                loadPrgLB();
                 break;
             case 185:
                 //nothing to do, already mounted.
@@ -141,7 +142,8 @@ void Cartridge::writeMemory(unsigned short address, unsigned char value){
                         if(address <= 0x9FFF){
                             ctrl1 = rv;
                             int v1 = ctrl1 & 3;
-                            if(v1 == 0 || v1 == 1) bus->ppu->mirror = bus->ppu->SINGLE_SCREEN;
+                            if(v1 == 0) bus->ppu->mirror = bus->ppu->SINGLE_SCREEN_DOWN;
+                            else if(v1 == 1) bus->ppu->mirror = bus->ppu->SINGLE_SCREEN_UP;
                             else if(v1 == 2) bus->ppu->mirror = bus->ppu->VERTICAL;
                             else bus->ppu->mirror = bus->ppu->HORIZONTAL;
                             int v2 = (ctrl1 >> 2) & 3;
@@ -184,10 +186,7 @@ void Cartridge::writeMemory(unsigned short address, unsigned char value){
                 break;
             }
             case 2:{
-                int val;
-                if(header[5] <= 8) val = value & 7;
-                else if(header[5] <= 16) val = value & 15;
-                for(int i=0;i<4;i++) prg_rom[i] = prg_banks + val * 0x4000 + 0x1000 * i;
+                uxromPrg(value);
                 break;
             }
             case 3:{
@@ -242,6 +241,9 @@ void Cartridge::writeMemory(unsigned short address, unsigned char value){
                 }
                 if(address % 2 == 1 && address <= 0x9FFE){
                     if(chr){
+                        if(value >= 8 * header[5]){
+                            value %= (8 * header[5]); //Pac-Mania
+                        }
                         if(b2k){
                             value &= 0xFE;
                             for(int i=0;i<2;i++){
@@ -252,7 +254,7 @@ void Cartridge::writeMemory(unsigned short address, unsigned char value){
                         }
                     }else{
                         value &= 0x3F;
-                        if(value + 1 > 2*header[4]){
+                        if(value + 1 >= 2*header[4]){
                             value %= (2*header[4]); //Super Contra?
                         }
                         for(int i=0;i<2;i++){
@@ -283,6 +285,11 @@ void Cartridge::writeMemory(unsigned short address, unsigned char value){
                 }
                 break;
             }
+            case 71:{
+                if(address == 0x9000) bus->ppu->mirror = value & 0x10 ? bus->ppu->SINGLE_SCREEN_UP :  bus->ppu->SINGLE_SCREEN_DOWN;
+                if(address >= 0xC000) uxromPrg(value);
+                break;
+            }
         }
     }
 }
@@ -299,6 +306,19 @@ void Cartridge::Clockmm3(){
         cnt4 = rlirq4;
         if(irq4 && cnt4 == 0) I = true;
     }
-    
-    
+}
+
+void Cartridge::loadPrgLB(){
+    for(int i=0;i<4;i++) prg_rom[i] = prg_banks + 0x1000 * i;
+    for(int i=4;i<8;i++) prg_rom[i] = prg_banks + (header[4] - 1) * 0x4000 + 0x1000 * (i-4);
+}
+
+void Cartridge::uxromPrg(unsigned char value){
+    int val;
+    if(header[4] <= 2) val = value & 1;
+    else if(header[4] <= 4) val = value & 3;
+    else if(header[4] <= 8) val = value & 7;
+    else if(header[4] <= 16) val = value & 15;
+    for(int i=0;i<4;i++) prg_rom[i] = prg_banks + val * 0x4000 + 0x1000 * i;
+    for(int i=0;i<4;i++) prg_rom[i] = prg_banks + val * 0x4000 + 0x1000 * i;
 }

@@ -32,7 +32,7 @@ private:
     int bst;
     int wreg = 0;
     unsigned short vreg = 0;
-    int xx = 0, yy = 0;
+    
     int sx = 0, sy = 0;
     unsigned short treg;
     unsigned short xreg;
@@ -43,8 +43,9 @@ private:
     
 
 public:
+    int xx = 0, yy = 0;
 unsigned char regs[10]; 
-    const int HORIZONTAL = 0, VERTICAL = 1, FOUR_SCREEN = 2, SINGLE_SCREEN = 3;
+    const int HORIZONTAL = 0, VERTICAL = 1, FOUR_SCREEN = 2, SINGLE_SCREEN_DOWN = 3, SINGLE_SCREEN_UP = 4;
     unsigned char VRAM[0x1000]; //exposed, so cartridge can write via bus
     unsigned char pmem[0x20];
     bool okVblank = false;

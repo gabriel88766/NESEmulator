@@ -83,7 +83,10 @@ void PPU::OAMADDR(){
 }
 void PPU::OAMDATA(){
     if(is_read){
-        openbus = retVal = OAM[regs[3]];
+        if(xx <= 64 && xx >= 1) retVal = 0xFF;
+        else if(xx <= 320 && xx >= 260) retVal = 0xFF;
+        else retVal = OAM[regs[3]];
+        openbus = retVal;    
         bus_set = bus->cpu->total_cycles;
     }else{
         writeOAM(value);
@@ -110,7 +113,6 @@ void PPU::PPUSCROLL(){
 void PPU::PPUADDR(){
     if(is_read) retVal = openbus;
     else{
-        // printf("addr %d %d, w = %d, a = %02X\n", yy, xx, wreg, value);
         if(wreg == 0){
             int ob = regs[7] & 0x10;
             regs[7] = value; //high byte
@@ -165,7 +167,7 @@ void PPU::PPUDATA(){
     vreg += inc;
     // vreg %= 0x4000;
     if((vreg & 0x1000) == 0x1000 && ob == 0) bus->cartridge->Clockmm3();
-    evaluateScroll();
+    // evaluateScroll(); buggy
 }
 
 
@@ -192,10 +194,13 @@ void PPU::move(){
     if(yy == 262){
         yy = 0;
     }
+    if(yy < 240 && xx == 256){
+        evaluateSprites(yy+1);
+    }
     if(xx < 256 && yy < 240){
-        if(xx == 0) {
-            evaluateSprites(yy); //this is wrong, but easy to fix?!
-        }
+        // if(xx == 0) {
+        //     evaluateSprites(yy); //this is wrong, but easy to fix?!
+        // }
         int cx = sx;
         int cy = sy;
         if(cx >= 512) cx -= 512;
@@ -282,13 +287,13 @@ void PPU::move(){
         clearVblank();
         if(bus_set + 50000 < bus->cpu->total_cycles) openbus = 0;
         okVblank = true;
-        if(regs[1] & 0x18) vreg = treg;
+        //if(regs[1] & 0x18) vreg = treg;
     }
     if(xx == 260 && (yy < 240 || yy == 261)){ //not correct but working.
         if((regs[1] & 0x18)) bus->cartridge->Clockmm3();
     }
     if(yy == 261 && xx == 339){
-        if(even){
+        if(even && (regs[1] & 0x18)){
             yy = 0;
             xx = -1;
         }
@@ -345,6 +350,7 @@ void PPU::evaluateSprites(int yy){
         if(yy >= y && y + ysz - 1 >= yy){
             if(__builtin_popcountll(sprites) == 8){
                 regs[2] |= 0x20;
+                printf("overflow, %d\n", yy);
                 break;
             }else sprites |= (1LL << i);
         }
@@ -429,6 +435,10 @@ unsigned short PPU::getAddress(unsigned short addr){
             break;
         case 3:
             addr &= 0x3FF;
+            break;
+        case 4:
+            addr &= 0x3FF;
+            addr += 0x400;
             break;
     }
     return addr;
