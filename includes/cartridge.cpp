@@ -19,11 +19,13 @@ void Cartridge::connectBus(Bus *bus){
 
 bool Cartridge::read(const char *filename){
     std::ifstream input(filename, std::ios::binary);
-    delete[] header;
-    header = new unsigned char[16];
-    input.read( (char*)header, 16 );
-    ram = false;
-    if(header[0] == 'N' && header[1] == 'E' && header[2] == 'S' && header[3] == 0x1A){
+    unsigned char nheader[16];
+    input.read( (char*)nheader, 16 );
+    if(nheader[0] == 'N' && nheader[1] == 'E' && nheader[2] == 'S' && nheader[3] == 0x1A){
+        delete[] header;
+        header = new unsigned char[16];
+        memcpy(header, nheader, 16);
+        ram = false;
         mapper = (header[7] & 0xF0) | (header[6] >> 4);
         if(header[6] & 1){
             bus->ppu->mirror = bus->ppu->VERTICAL;

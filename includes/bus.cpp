@@ -31,12 +31,14 @@ unsigned char Bus::readAddress(unsigned short address){
     }else if(address < 0x4020){
         //apu
         if(address == 0x4016){
-            ret = (regbut1 & 1) ? 0 : 1;  // active low
+            ret = 0x18;
+            ret |= (regbut1 & 1) ? 0 : 1;  // active low
             if (!strobe) {
                 regbut1 >>= 1;
             }
         }else if(address == 0x4017){
-            ret = (regbut2 & 1) ? 0 : 1;  // active low
+            ret = 0x18;
+            ret |= (regbut2 & 1) ? 0 : 1;  // active low
             if (!strobe) {
                 regbut2 >>= 1;
             }

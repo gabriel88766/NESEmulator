@@ -1,6 +1,7 @@
 # NESEmulator
 In development, but mostly working. NES Emulator - CPP. \
-TODO: mappers and improve APU
+You can check it in WASM version here: https://gabriel88766.github.io/NESEmulator/ \
+TODO: more mappers and improve APU
 
 [1] Used to implement all instructions and addressing modes \
 [2] Klaus functional test, used to test CPU 6502 \

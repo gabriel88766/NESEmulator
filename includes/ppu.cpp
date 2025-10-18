@@ -118,7 +118,6 @@ void PPU::PPUADDR(){
             regs[7] = value; //high byte
             treg &= 0xFF;
             treg |= (value << 8) & 0x3F00;
-            if((regs[7] & 0x10) == 0x10 && ob == 0) bus->cartridge->Clockmm3();
         } else{
             regs[8] = value; //low byte
             treg &= 0x7F00;
@@ -163,10 +162,8 @@ void PPU::PPUDATA(){
             else pmem[addr & 0x1F] = value & 0x3F;
         }
     }
-    int ob = vreg & 0x1000;
     vreg += inc;
-    // vreg %= 0x4000;
-    if((vreg & 0x1000) == 0x1000 && ob == 0) bus->cartridge->Clockmm3();
+    vreg %= 0x8000;
     // evaluateScroll(); buggy
 }
 

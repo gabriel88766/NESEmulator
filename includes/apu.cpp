@@ -79,13 +79,14 @@ void APU::writeMemory(unsigned short address, unsigned char value){
     if(address == 0x15){
         I = false;
         if(value & (1 << 4)){
-            if(len[4] < 8){
+            if(len[4] == 0){
                 restart_dmc = true;
             }
             en[4] = true;
         }else{
             size = 0;
-            len[4] %= 8;
+            len[4] = 0;
+            enddmc = true;
             en[4] = false;
             restart_dmc = false;
         }

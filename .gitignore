@@ -46,3 +46,4 @@ auxiliar
 debug
 vendored
 build
+build_wasm
