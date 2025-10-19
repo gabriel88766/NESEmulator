@@ -13,6 +13,7 @@ private:
     unsigned char **chr_rom;
     unsigned char *prg_ram;
     unsigned char *prg_banks;
+    unsigned char *trainer;
     unsigned char *chr_banks;
     unsigned char *chr_ram;
     unsigned char mapper;
@@ -29,6 +30,11 @@ private:
     //mapper 1
     unsigned char ctrl1 = 0xC;
     unsigned char reg1 = 0; //lower 3 bits store the next bit, upper 5 bits store the value.
+
+    //mapper 243
+    unsigned char reg[8];
+    int creg;
+    int chr_addr = 0;
 public:
     bool I = false;
     bool ram = false; //accessed by bus for openbus behavior
@@ -41,6 +47,8 @@ public:
     //Functions helper to mappers
     void loadPrgLB();
     void uxromPrg(unsigned char value);
+    void axromPrg(unsigned char value);
+    void cxromChr(unsigned char value);
     void Clockmm3();
 };
 

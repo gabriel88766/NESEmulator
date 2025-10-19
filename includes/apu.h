@@ -47,6 +47,8 @@ private:
     int addr;
     double outp;
     void clockdmc();
+    std::vector<int> dmcsmp;
+    int outdmc;
 
 public:
     bool F, I;
