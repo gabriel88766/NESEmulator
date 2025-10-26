@@ -50,7 +50,7 @@ unsigned char regs[10];
     unsigned char pmem[0x20];
     bool okVblank = false;
     int mirror; //set by cartridge. magic number : 0 = horizontal, 1 = vertical, 2 = four pages, 3 = single page.
-    Color framebuffer[256][240];
+    unsigned int framebuffer[256 * 240];
     PPU();
     
     void connectBus(Bus *bus);

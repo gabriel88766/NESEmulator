@@ -247,7 +247,8 @@ void PPU::move(){
         }
         unsigned char color = pmem[res];
         if(regs[1] & 1) color &= 0x30;
-        framebuffer[xx][yy] = color_pallete[regs[1] >> 5][color];
+        Color &pixel = color_pallete[regs[1] >> 5][color];
+        framebuffer[yy * 256 + xx] = 0xFF + (pixel.R << 8) | (pixel.G << 16) | (pixel.B << 24);
         sx++;
     }
     

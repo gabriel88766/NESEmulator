@@ -1,7 +1,7 @@
 # NESEmulator
 In development, but mostly working. NES Emulator - CPP. \
 You can check it in WASM version here: https://gabriel88766.github.io/NESEmulator/ \
-TODO: more mappers and improve APU
+TODO: more mappers 
 
 [1] Used to implement all instructions and addressing modes \
 [2] Klaus functional test, used to test CPU 6502 \
@@ -62,5 +62,5 @@ build/bin/emuNES
 - On macOS, to be tested yet, but fully working on windows and linux.
 - After editing source files, just run `cmake --build build` to rebuild.
 - Currently supporting mapper 0, 1, 2, 3, 4, 185, but surely not all games using these mappers. However I'm sure it is supporting over 100 games.
-- APU sounds good enough for me, but it's not properly emulated, it's is simulated instead. TODO : emulate it.
 - To play games: start = return, select = right shift, Z = B, X = A and use DOWN LEFT UP and RIGHT instead of WASD to move.
+- It's synced to audio.

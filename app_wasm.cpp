@@ -10,16 +10,10 @@
 #include <SDL2/SDL.h>
 #include <iostream>
 #include <math.h>
+#include <queue>
 using namespace std;
 
 const float PI = acos(-1.);
-uint32_t frame[256 * 240]; // frontend-owned buffer
-long long int nvb = 0;
-const long long int clock_frame = 29780;
-const long long int clock_vblank = 27314;
-long long int ntk = 7457;
-const long long int clock_apu = 7457;
-
 static Bus bus;
 static CPU cpu;
 static Cartridge cartridge;
@@ -27,25 +21,35 @@ static PPU ppu;
 static APU apu;
 
 SDL_AudioDeviceID device_id;
-SDL_AudioSpec spec;
+SDL_AudioSpec spec, have;
 SDL_Texture *texture = NULL;
 SDL_Window *window = NULL;
 SDL_Renderer *renderer = NULL;
 
 unsigned char buttons = 0xFF;
-int wait = 0;
 double sampleRate = 44100.0;
 bool loaded = false;
-
-void audio_callback(void *userdata, Uint8 *stream, int length)
-{
-    wait = 1;
-    apu.getSampling((Uint16 *)stream, length / sizeof(Sint16), sampleRate);
-    wait = 0;
+SDL_AudioStream *stream = NULL;
+std::queue<float> aq;
+float lb;
+void audio_callback(void *userdata, Uint8 *stream_b, int len) {
+    int x = sizeof(float);
+    float *buf = (float*)stream_b;
+    // int got = SDL_AudioStreamGet(stream, buf, len);
+    if(aq.size() < len/x){
+        for(int i=0;i<len/x;i++) buf[i] = lb;
+    }
+    else{
+        for(int i=0;i<len/x;i++){
+            lb = buf[i] = (aq.front() - 0.5)*2;
+            aq.pop();
+        }
+    }
 }
 
-void main_loop()
-{
+const int ns = 2000;
+
+void main_loop(){
     SDL_Event e;
     // Do event loop
     while (SDL_PollEvent(&e))
@@ -115,40 +119,42 @@ void main_loop()
     bus.button1 = buttons;
     bus.button2 = 0xFF;
     // Do physics loop
-    if (loaded)
-    {
-        long long int cyc = cpu.total_cycles;
-        while (!ppu.okVblank)
-        {
-            while(wait);
+    int queued = aq.size();
+    bool render = false;
+    if(queued < ns) render = true;
+    if (loaded && queued < ns ){
+        while (!ppu.okVblank){   
             cpu.nextInstruction();
         }
-        ppu.okVblank = false;
-        wait = false;
-        // Do rendering loop
-        for (int y = 0; y < 240; ++y)
-        {
-            for (int x = 0; x < 256; ++x)
-            {
-                Color pixel = ppu.framebuffer[x][y];
-                // pack into 0xRRGGBB (32-bit)
-                frame[y * 256 + x] = (pixel.R << 16) | (pixel.G << 8) | (pixel.B);
+        vector<float> batch;
+        while(apu.samples.size() >= 40){
+            float cs = 0;
+            for(int i=0;i<40;i++){
+                cs += apu.samples.front();
+                apu.samples.pop_front();
             }
+            cs /= 40;
+            aq.push(cs);
+            // batch.push_back(cs);
         }
+        // std::vector<float> batch(apu.samples.begin(), apu.samples.end());
+        // SDL_AudioStreamPut(stream, batch.data(), batch.size() * sizeof(float));
+        // apu.samples.clear();
+        ppu.okVblank = false;
     }
     // renderer
-    SDL_RenderClear(renderer);
-    SDL_SetRenderDrawColor(renderer, 240, 240, 240, 255);
-    SDL_UpdateTexture(texture, NULL, frame, 256 * sizeof(uint32_t));
-    SDL_Rect dstRect = {0, 0, 512, 480};
-    SDL_RenderCopy(renderer, texture, NULL, &dstRect);
+    if(render){
+        SDL_RenderClear(renderer);
+        SDL_SetRenderDrawColor(renderer, 240, 240, 240, 255);
+        SDL_UpdateTexture(texture, NULL, ppu.framebuffer, 256 * sizeof(uint32_t));
+        SDL_Rect dstRect = {0, 0, 512, 480};
+        SDL_RenderCopy(renderer, texture, NULL, &dstRect);
 
-    SDL_RenderPresent(renderer);
+        SDL_RenderPresent(renderer);
+    }
 }
-
 // Called from JS to resume the loop
-extern "C" void load_cartridge()
-{
+extern "C" void load_cartridge(){
     bool nloaded = cartridge.read("/file.nes");
     SDL_PauseAudioDevice(device_id, 1);
     if (nloaded)
@@ -167,8 +173,7 @@ extern "C" void load_cartridge()
 
 int main()
 {
-    printf("start\n");
-    if (SDL_Init(SDL_INIT_AUDIO) < 0)
+    if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO) < 0)
     {
         fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
         exit(1);
@@ -178,8 +183,8 @@ int main()
     bus.connectCartridge(&cartridge);
     bus.connectPPU(&ppu);
 
-    spec.freq = (int)sampleRate;    // Sample rate (Hz)
-    spec.format = AUDIO_U16SYS;     // 16-bit signed samples
+    spec.freq = 44100;    // Sample rate (Hz)
+    spec.format = AUDIO_F32SYS;     // 16-bit signed samples
     spec.channels = 1;              // Mono sound
     spec.samples = 512;             // Buffer size (number of samples per callback)
     spec.callback = audio_callback; // Callback function
@@ -187,7 +192,8 @@ int main()
 
     window = SDL_CreateWindow("NES Emulator", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 512, 480, SDL_WINDOW_SHOWN);
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STREAMING, 256, 240);
-    emscripten_set_main_loop(main_loop, 60, 1);
-    SDL_PauseAudioDevice(device_id, 0);
+    texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB32, SDL_TEXTUREACCESS_STREAMING, 256, 240);
+    // emscripten_set_main_loop_timing(EM_TIMING_SETIMMEDIATE, 1);
+    emscripten_set_main_loop(main_loop, 65, 1);
+    SDL_PauseAudioDevice(device_id, 1);
 }

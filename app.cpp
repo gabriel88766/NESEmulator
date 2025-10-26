@@ -10,12 +10,6 @@
 using namespace std;
 
 const float PI = acos(-1.);
-uint32_t frame[256 * 240];  // frontend-owned buffer
-long long int nvb = 0;
-const long long int clock_frame = 29780;
-const long long int clock_vblank = 27314;
-long long int ntk = 7457;
-const long long int clock_apu = 7457;
 
 static Bus bus;
 static CPU cpu;
@@ -23,33 +17,50 @@ static Cartridge cartridge;
 static PPU ppu;
 static APU apu;
 
-int wait = 0;
 double sampleRate = 44100.0;
 
-void audio_callback(void* userdata, Uint8* stream, int length) {
-    wait = 1;
-    apu.getSampling((Uint16*) stream, length / sizeof(Sint16), sampleRate);
-    wait = 0;
+float lastbuf = 0;
+
+SDL_AudioStream *stream = NULL;
+
+void audio_callback(void *userdata, Uint8 *stream_b, int len) {
+    int x = sizeof(float);
+    float *buf = (float*)stream_b;
+
+    int got = SDL_AudioStreamGet(stream, buf, len);
+    if (got < len) {
+        lastbuf = got/x == 0 ? lastbuf : buf[got/x-1];
+        for(int j=got/x;j<len/x;j++){
+            buf[j] = lastbuf;
+        }
+    }
+    lastbuf = buf[len/x - 1];
+    for(int i=0;i<len/x;i++){
+        buf[i] = (buf[i] - 0.5)*2;
+    }
 }
 
-
-
 int main(int argc, char** args){
-    // freopen("testROM/logs4", "w", stdout);
+    
+    freopen("logs", "w", stdout);
+    // freopen("logs", "r", stdin);
     if (SDL_Init( SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) < 0) {
 		cout << "Error initializing SDL: " << SDL_GetError() << endl;
 		return 1;
 	} 
 
-    SDL_AudioSpec spec;
-
-    spec.freq = (int)sampleRate;                // Sample rate (Hz)
-    spec.format = AUDIO_U16SYS;        // 16-bit signed samples
-    spec.channels = 1;                 // Mono sound
-    spec.samples = 512;               // Buffer size (number of samples per callback)
-    spec.callback = audio_callback;    // Callback function
-    SDL_AudioDeviceID device_id = SDL_OpenAudioDevice(NULL, 0, &spec, NULL, 0);
+    SDL_AudioSpec spec, have;
     
+    spec.freq = 44100;                // Sample rate (Hz)
+    spec.format = AUDIO_F32SYS;        //  from 0 to 1.
+    spec.channels = 1;                 // Mono sound
+    spec.samples = 256;               // Buffer size (number of samples per callback)
+    spec.callback = audio_callback;    // Callback function
+    SDL_AudioDeviceID device_id = SDL_OpenAudioDevice(NULL, 0, &spec, &have, 0);
+
+    stream = SDL_NewAudioStream(AUDIO_F32SYS, 1, 1789773, AUDIO_F32SYS, 1, 44100);
+
+    SDL_PauseAudioDevice(device_id, 1);
 
 
     SDL_Texture* texture = NULL;
@@ -65,7 +76,7 @@ int main(int argc, char** args){
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
 
-    texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STREAMING, 256, 240);
+    texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB32, SDL_TEXTUREACCESS_STREAMING, 256, 240);
 
     
 
@@ -80,8 +91,9 @@ int main(int argc, char** args){
     unsigned char buttons = 0xFF;
     int X = 0;
     bool loaded = false;
+    bool inited = false;
+   
     while (running) {
-        // cout << "frame" << ++X << "\n";
         SDL_Rect button = {0, 0, 70, 25};
         Uint64 start = SDL_GetPerformanceCounter();
         SDL_Event e;
@@ -123,6 +135,7 @@ int main(int argc, char** args){
                             SDL_PauseAudioDevice(device_id, 1);
                             const char *format[] = {"*.nes"};
                             auto filename = tinyfd_openFileDialog("Select Nes File", NULL, 1, format, "Nes file(.nes)", 0);
+                            if (!filename) { SDL_PauseAudioDevice(device_id, 0); break; }
                             loaded = cartridge.read(filename);
                             if(!loaded) break;
                             ppu.powerON();
@@ -139,58 +152,55 @@ int main(int argc, char** args){
         bus.button1 = buttons;
         bus.button2 = 0xFF;
         // Do physics loop
-        if(loaded){
+        int queued = SDL_AudioStreamAvailable(stream);
+        bool render = false;
+        if(queued < 2000 * sizeof(float)) render = true;
+        if(loaded && queued < 2000 * sizeof(float)){
             //test apu
             long long int cyc = cpu.total_cycles;
             while(!ppu.okVblank){
-                while(wait);
                 cpu.nextInstruction();
             }
+            std::vector<float> batch(apu.samples.begin(), apu.samples.end());
+            SDL_AudioStreamPut(stream, batch.data(), batch.size() * sizeof(float));
+            apu.samples.clear();
             ppu.okVblank = false;
-            wait = false;
-            // Do rendering loop
-            for (int y = 0; y < 240; ++y) {
-                for (int x = 0; x < 256; ++x) {
-                    Color pixel = ppu.framebuffer[x][y];
-                    // pack into 0xRRGGBB (32-bit)
-                    frame[y * 256 + x] = (pixel.R << 16) | (pixel.G << 8) | (pixel.B);
-                }
-            }
         }
         //renderer
-        SDL_RenderClear(renderer);
+        if(render){
+            SDL_RenderClear(renderer);
 
-        SDL_Rect menubar = {0, 0, 512, 25};
-        SDL_SetRenderDrawColor(renderer, 240, 240, 240, 255);
-        SDL_RenderFillRect(renderer, &menubar);
+            SDL_Rect menubar = {0, 0, 512, 25};
+            SDL_SetRenderDrawColor(renderer, 240, 240, 240, 255);
+            SDL_RenderFillRect(renderer, &menubar);
 
-        SDL_UpdateTexture(texture, NULL, frame, 256 * sizeof(uint32_t));
-        
-        SDL_Rect dstRect = {0, 25, 512, 480};
-        SDL_RenderCopy(renderer, texture, NULL, &dstRect);
-        
+            SDL_UpdateTexture(texture, NULL, ppu.framebuffer, 256 * sizeof(uint32_t));
+            
+            SDL_Rect dstRect = {0, 25, 512, 480};
+            SDL_RenderCopy(renderer, texture, NULL, &dstRect);
+            
 
-        
-        int mx, my;
-        SDL_GetMouseState(&mx, &my);
-        int hover = (mx >= button.x && mx < button.x + button.w &&
-                    my >= button.y && my < button.y + button.h);
-        if (hover) SDL_SetRenderDrawColor(renderer, 120, 120, 255, 255);
-        else       SDL_SetRenderDrawColor(renderer, 50, 50, 255, 255);
-        SDL_RenderFillRect(renderer, &button);
+            
+            int mx, my;
+            SDL_GetMouseState(&mx, &my);
+            int hover = (mx >= button.x && mx < button.x + button.w &&
+                        my >= button.y && my < button.y + button.h);
+            if (hover) SDL_SetRenderDrawColor(renderer, 120, 120, 255, 255);
+            else       SDL_SetRenderDrawColor(renderer, 50, 50, 255, 255);
+            SDL_RenderFillRect(renderer, &button);
 
 
-        SDL_RenderPresent(renderer);
-
+            SDL_RenderPresent(renderer);
+        }
         Uint64 end = SDL_GetPerformanceCounter();
 
         float elapsedMS = (end - start) / (float)SDL_GetPerformanceFrequency() * 1000.0f;
-        // cout << 16.666f - elapsedMS << "\n";
-        // Cap to 60 FPS
-        if(16.666f - elapsedMS > 0) SDL_Delay(floor(16.666f - elapsedMS));
+        // Cap to 1000 FPS lol!!
+        if(1 >= elapsedMS) SDL_Delay(1);
     }
 
-    SDL_CloseAudio();
+    SDL_FreeAudioStream(stream);
+    SDL_CloseAudioDevice(device_id);
 	SDL_DestroyWindow( window );
 	SDL_Quit();
     return 0;
