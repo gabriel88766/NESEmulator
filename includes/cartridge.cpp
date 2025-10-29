@@ -3,6 +3,7 @@
 #include "cartridge.h"
 #include <fstream>
 #include <cassert>
+#include <cstring>
 
 Cartridge::~Cartridge(){
     delete[] header;
