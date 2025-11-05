@@ -7,7 +7,7 @@
 #include "includes/cartridge.h"
 #include "includes/apu.h"
 // #include "vendored/tinyfiledialogs/tinyfiledialogs.h"
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 #include <iostream>
 #include <math.h>
 #include <queue>
@@ -30,24 +30,8 @@ unsigned char buttons = 0xFF;
 double sampleRate = 44100.0;
 bool loaded = false;
 SDL_AudioStream *stream = NULL;
-std::queue<float> aq;
-float lb;
-void audio_callback(void *userdata, Uint8 *stream_b, int len) {
-    int x = sizeof(float);
-    float *buf = (float*)stream_b;
-    // int got = SDL_AudioStreamGet(stream, buf, len);
-    if(aq.size() < len/x){
-        for(int i=0;i<len/x;i++) buf[i] = lb;
-    }
-    else{
-        for(int i=0;i<len/x;i++){
-            lb = buf[i] = (aq.front() - 0.5)*2;
-            aq.pop();
-        }
-    }
-}
 
-const int ns = 2000;
+const int ns = 170000 * sizeof(float);
 
 void main_loop(){
     SDL_Event e;
@@ -56,62 +40,28 @@ void main_loop(){
     {
         switch (e.type)
         {
-        case SDL_KEYUP:
-            switch (e.key.keysym.sym)
-            {
-            case SDLK_RIGHT:
-                buttons |= 0x80;
-                break; // Right
-            case SDLK_LEFT:
-                buttons |= 0x40;
-                break; // Left
-            case SDLK_DOWN:
-                buttons |= 0x20;
-                break; // Down
-            case SDLK_UP:
-                buttons |= 0x10;
-                break; // Up
-            case SDLK_RETURN:
-                buttons |= 0x08;
-                break; // Start
-            case SDLK_RSHIFT:
-                buttons |= 0x04;
-                break; // Select
-            case SDLK_z:
-                buttons |= 0x02;
-                break; // B
-            case SDLK_x:
-                buttons |= 0x01;
-                break; // A
+        case SDL_EVENT_KEY_UP:
+            switch (e.key.key) {
+                case SDLK_RIGHT:  buttons |= 0x80; break; // Right
+                case SDLK_LEFT:   buttons |= 0x40; break; // Left
+                case SDLK_DOWN:   buttons |= 0x20; break; // Down
+                case SDLK_UP:     buttons |= 0x10; break; // Up
+                case SDLK_RETURN: buttons |= 0x08; break; // Start
+                case SDLK_RSHIFT: buttons |= 0x04; break; // Select
+                case SDLK_Z:      buttons |= 0x02; break; // B
+                case SDLK_X:      buttons |= 0x01; break; // A
             }
             break;
-        case SDL_KEYDOWN:
-            switch (e.key.keysym.sym)
-            {
-            case SDLK_RIGHT:
-                buttons &= ~0x80;
-                break; // Right
-            case SDLK_LEFT:
-                buttons &= ~0x40;
-                break; // Left
-            case SDLK_DOWN:
-                buttons &= ~0x20;
-                break; // Down
-            case SDLK_UP:
-                buttons &= ~0x10;
-                break; // Up
-            case SDLK_RETURN:
-                buttons &= ~0x08;
-                break; // Start
-            case SDLK_RSHIFT:
-                buttons &= ~0x04;
-                break; // Select
-            case SDLK_z:
-                buttons &= ~0x02;
-                break;
-            case SDLK_x:
-                buttons &= ~0x01;
-                break; // A
+        case SDL_EVENT_KEY_DOWN:
+            switch (e.key.key) {
+                case SDLK_RIGHT:  buttons &= ~0x80; break; // Right
+                case SDLK_LEFT:   buttons &= ~0x40; break; // Left
+                case SDLK_DOWN:   buttons &= ~0x20; break; // Down
+                case SDLK_UP:     buttons &= ~0x10; break; // Up
+                case SDLK_RETURN: buttons &= ~0x08; break; // Start
+                case SDLK_RSHIFT: buttons &= ~0x04; break; // Select 
+                case SDLK_Z:      buttons &= ~0x02; break; // B
+                case SDLK_X:      buttons &= ~0x01; break; // A
             }
             break;
         }
@@ -119,27 +69,16 @@ void main_loop(){
     bus.button1 = buttons;
     bus.button2 = 0xFF;
     // Do physics loop
-    int queued = aq.size();
+    int queued = SDL_GetAudioStreamAvailable(stream);
     bool render = false;
     if(queued < ns) render = true;
     if (loaded && queued < ns ){
         while (!ppu.okVblank){   
             cpu.nextInstruction();
         }
-        vector<float> batch;
-        while(apu.samples.size() >= 40){
-            float cs = 0;
-            for(int i=0;i<40;i++){
-                cs += apu.samples.front();
-                apu.samples.pop_front();
-            }
-            cs /= 40;
-            aq.push(cs);
-            // batch.push_back(cs);
-        }
-        // std::vector<float> batch(apu.samples.begin(), apu.samples.end());
-        // SDL_AudioStreamPut(stream, batch.data(), batch.size() * sizeof(float));
-        // apu.samples.clear();
+        std::vector<float> batch(apu.samples.begin(), apu.samples.end());
+        SDL_PutAudioStreamData(stream, batch.data(), batch.size() * sizeof(float));
+        apu.samples.clear();
         ppu.okVblank = false;
     }
     // renderer
@@ -147,8 +86,8 @@ void main_loop(){
         SDL_RenderClear(renderer);
         SDL_SetRenderDrawColor(renderer, 240, 240, 240, 255);
         SDL_UpdateTexture(texture, NULL, ppu.framebuffer, 256 * sizeof(uint32_t));
-        SDL_Rect dstRect = {0, 0, 512, 480};
-        SDL_RenderCopy(renderer, texture, NULL, &dstRect);
+        SDL_FRect dstRect = {0, 0, 512, 480};
+        SDL_RenderTexture(renderer, texture, NULL, &dstRect);
 
         SDL_RenderPresent(renderer);
     }
@@ -156,7 +95,7 @@ void main_loop(){
 // Called from JS to resume the loop
 extern "C" void load_cartridge(){
     bool nloaded = cartridge.read("/file.nes");
-    SDL_PauseAudioDevice(device_id, 1);
+    SDL_PauseAudioDevice(device_id);
     if (nloaded)
     {
         loaded = true;
@@ -164,16 +103,16 @@ extern "C" void load_cartridge(){
         cpu.powerON();
         cpu.reset();
         apu.reset();
-        SDL_PauseAudioDevice(device_id, 0);
+        SDL_ResumeAudioDevice(device_id);
     }else if(loaded){
-        SDL_PauseAudioDevice(device_id, 0);
+        SDL_ResumeAudioDevice(device_id);
     }
     
 }
 
 int main()
 {
-    if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO) < 0)
+    if (!SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO))
     {
         fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
         exit(1);
@@ -183,17 +122,25 @@ int main()
     bus.connectCartridge(&cartridge);
     bus.connectPPU(&ppu);
 
-    spec.freq = 44100;    // Sample rate (Hz)
-    spec.format = AUDIO_F32SYS;     // 16-bit signed samples
-    spec.channels = 1;              // Mono sound
-    spec.samples = 512;             // Buffer size (number of samples per callback)
-    spec.callback = audio_callback; // Callback function
-    device_id = SDL_OpenAudioDevice(NULL, 0, &spec, NULL, 0);
+    SDL_AudioSpec src, dst;
+    
+    src.freq = 1789773;
+    src.channels = 1;
+    src.format = SDL_AUDIO_F32;
+    dst.freq = 44100;
+    dst.channels = 1;
+    dst.format = SDL_AUDIO_F32;
 
-    window = SDL_CreateWindow("NES Emulator", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 512, 480, SDL_WINDOW_SHOWN);
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &src, NULL, NULL);
+    SDL_SetAudioStreamFormat(stream, &src, &dst);
+    
+    device_id = SDL_GetAudioStreamDevice(stream);
+
+    window = SDL_CreateWindow("NES Emulator", 512, 480, SDL_EVENT_WINDOW_SHOWN);
+    renderer = SDL_CreateRenderer(window, NULL);
+    SDL_SetRenderVSync(renderer, -1);
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB32, SDL_TEXTUREACCESS_STREAMING, 256, 240);
     // emscripten_set_main_loop_timing(EM_TIMING_SETIMMEDIATE, 1);
-    emscripten_set_main_loop(main_loop, 65, 1);
-    SDL_PauseAudioDevice(device_id, 1);
+    emscripten_set_main_loop(main_loop, 180, 1);
+    SDL_PauseAudioDevice(device_id);
 }

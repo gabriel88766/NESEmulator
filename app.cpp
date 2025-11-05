@@ -4,7 +4,7 @@
 #include "includes/cartridge.h"
 #include "includes/apu.h"
 #include "vendored/tinyfiledialogs/tinyfiledialogs.h"
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 #include <iostream>
 #include <math.h>
 using namespace std;
@@ -23,63 +23,51 @@ float lastbuf = 0;
 
 SDL_AudioStream *stream = NULL;
 
-void audio_callback(void *userdata, Uint8 *stream_b, int len) {
-    int x = sizeof(float);
-    float *buf = (float*)stream_b;
-
-    int got = SDL_AudioStreamGet(stream, buf, len);
-    if (got < len) {
-        lastbuf = got/x == 0 ? lastbuf : buf[got/x-1];
-        for(int j=got/x;j<len/x;j++){
-            buf[j] = lastbuf;
-        }
-    }
-    lastbuf = buf[len/x - 1];
-    for(int i=0;i<len/x;i++){
-        buf[i] = (buf[i] - 0.5)*2;
-    }
-}
-
 int main(int argc, char** args){
     
     freopen("logs", "w", stdout);
     // freopen("logs", "r", stdin);
-    if (SDL_Init( SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) < 0) {
+    if (!SDL_Init( SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
 		cout << "Error initializing SDL: " << SDL_GetError() << endl;
 		return 1;
 	} 
 
-    SDL_AudioSpec spec, have;
+    SDL_AudioSpec src, dst;
     
-    spec.freq = 44100;                // Sample rate (Hz)
-    spec.format = AUDIO_F32SYS;        //  from 0 to 1.
-    spec.channels = 1;                 // Mono sound
-    spec.samples = 256;               // Buffer size (number of samples per callback)
-    spec.callback = audio_callback;    // Callback function
-    SDL_AudioDeviceID device_id = SDL_OpenAudioDevice(NULL, 0, &spec, &have, 0);
+    src.freq = 1789773;
+    src.channels = 1;
+    src.format = SDL_AUDIO_F32;
+    dst.freq = 44100;
+    dst.channels = 1;
+    dst.format = SDL_AUDIO_F32;
 
-    stream = SDL_NewAudioStream(AUDIO_F32SYS, 1, 1789773, AUDIO_F32SYS, 1, 44100);
 
-    SDL_PauseAudioDevice(device_id, 1);
+    stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &src, NULL, NULL);
+
+
+    SDL_SetAudioStreamFormat(stream, &src, &dst);
+    // SDL_SetAudioStreamPutCallback(stream, &audio_callback, NULL);
+
+    SDL_PauseAudioDevice(SDL_GetAudioStreamDevice(stream));
 
 
     SDL_Texture* texture = NULL;
 	SDL_Window* window = NULL;
 
-    window = SDL_CreateWindow( "EmuNES - Click the blue button to choose the ROM", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 512, 504, SDL_WINDOW_SHOWN );
+    window = SDL_CreateWindow( "EmuNES - Click the blue button to choose the ROM", 512, 504, SDL_EVENT_WINDOW_SHOWN );
 
     if ( !window ) {
 		cout << "Error creating window: " << SDL_GetError()  << endl;
 		return 1;
 	}
 
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-
+    SDL_Renderer* renderer = SDL_CreateRenderer(window, NULL); //SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
+    SDL_SetRenderVSync(renderer, -1);
 
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB32, SDL_TEXTUREACCESS_STREAMING, 256, 240);
 
     
-
+    memset(ppu.framebuffer, 0xFF, sizeof(ppu.framebuffer));
     
     bus.connectAPU(&apu);
     bus.connectCPU(&cpu);
@@ -94,75 +82,75 @@ int main(int argc, char** args){
     bool inited = false;
    
     while (running) {
-        SDL_Rect button = {0, 0, 70, 25};
+        SDL_FRect button = {0, 0, 70, 25};
         Uint64 start = SDL_GetPerformanceCounter();
         SDL_Event e;
         // Do event loop
         while (SDL_PollEvent(&e)) {
             switch(e.type){
-                case SDL_QUIT:
-                    return false;
+                case SDL_EVENT_QUIT:
+                    running = false;
                     break;
-                case SDL_KEYUP:
-                    switch (e.key.keysym.sym) {
+                case SDL_EVENT_KEY_UP:
+                    switch (e.key.key) {
                         case SDLK_RIGHT:  buttons |= 0x80; break; // Right
                         case SDLK_LEFT:   buttons |= 0x40; break; // Left
                         case SDLK_DOWN:   buttons |= 0x20; break; // Down
                         case SDLK_UP:     buttons |= 0x10; break; // Up
                         case SDLK_RETURN: buttons |= 0x08; break; // Start
                         case SDLK_RSHIFT: buttons |= 0x04; break; // Select
-                        case SDLK_z:      buttons |= 0x02; break; // B
-                        case SDLK_x:      buttons |= 0x01; break; // A
+                        case SDLK_Z:      buttons |= 0x02; break; // B
+                        case SDLK_X:      buttons |= 0x01; break; // A
                     }
                     break;
-                case SDL_KEYDOWN:
-                    switch (e.key.keysym.sym) {
+                case SDL_EVENT_KEY_DOWN:
+                    switch (e.key.key) {
                         case SDLK_RIGHT:  buttons &= ~0x80; break; // Right
                         case SDLK_LEFT:   buttons &= ~0x40; break; // Left
                         case SDLK_DOWN:   buttons &= ~0x20; break; // Down
                         case SDLK_UP:     buttons &= ~0x10; break; // Up
                         case SDLK_RETURN: buttons &= ~0x08; break; // Start
                         case SDLK_RSHIFT: buttons &= ~0x04; break; // Select 
-                        case SDLK_z:      buttons &= ~0x02; break; // B
-                        case SDLK_x:      buttons &= ~0x01; break; // A
+                        case SDLK_Z:      buttons &= ~0x02; break; // B
+                        case SDLK_X:      buttons &= ~0x01; break; // A
                     }
                     break;
-                case SDL_MOUSEBUTTONDOWN:
+                case SDL_EVENT_MOUSE_BUTTON_DOWN:
                     if(e.button.button == SDL_BUTTON_LEFT){
                         if (e.button.x >= button.x && e.button.x < button.x + button.w &&
                             e.button.y >= button.y && e.button.y < button.y + button.h) {
                             // Button clicked!
-                            SDL_PauseAudioDevice(device_id, 1);
+                            SDL_PauseAudioDevice(SDL_GetAudioStreamDevice(stream));
                             const char *format[] = {"*.nes"};
                             auto filename = tinyfd_openFileDialog("Select Nes File", NULL, 1, format, "Nes file(.nes)", 0);
-                            if (!filename) { SDL_PauseAudioDevice(device_id, 0); break; }
+                            if (!filename) { SDL_ResumeAudioDevice(SDL_GetAudioStreamDevice(stream)); break; }
                             loaded = cartridge.read(filename);
                             if(!loaded) break;
                             ppu.powerON();
                             cpu.powerON();
                             cpu.reset();
                             apu.reset();
-                            SDL_PauseAudioDevice(device_id, 0);
+                            SDL_ResumeAudioDevice(SDL_GetAudioStreamDevice(stream));
                         }
                     }
                     break;
             }
-            if (e.type == SDL_QUIT) running = false;
         }
         bus.button1 = buttons;
         bus.button2 = 0xFF;
         // Do physics loop
-        int queued = SDL_AudioStreamAvailable(stream);
+        int queued = SDL_GetAudioStreamAvailable(stream);
+        
         bool render = false;
-        if(queued < 2000 * sizeof(float)) render = true;
-        if(loaded && queued < 2000 * sizeof(float)){
+        if(queued < 179000 * sizeof(float)) render = true; //~100ms
+        if(loaded && render){
             //test apu
             long long int cyc = cpu.total_cycles;
             while(!ppu.okVblank){
                 cpu.nextInstruction();
             }
             std::vector<float> batch(apu.samples.begin(), apu.samples.end());
-            SDL_AudioStreamPut(stream, batch.data(), batch.size() * sizeof(float));
+            SDL_PutAudioStreamData(stream, batch.data(), batch.size() * sizeof(float));
             apu.samples.clear();
             ppu.okVblank = false;
         }
@@ -170,24 +158,24 @@ int main(int argc, char** args){
         if(render){
             SDL_RenderClear(renderer);
 
-            SDL_Rect menubar = {0, 0, 512, 25};
+            SDL_FRect menubar = {0, 0, 512, 25};
             SDL_SetRenderDrawColor(renderer, 240, 240, 240, 255);
             SDL_RenderFillRect(renderer, &menubar);
-
             SDL_UpdateTexture(texture, NULL, ppu.framebuffer, 256 * sizeof(uint32_t));
             
-            SDL_Rect dstRect = {0, 25, 512, 480};
-            SDL_RenderCopy(renderer, texture, NULL, &dstRect);
+            SDL_FRect dstRect = {0, 25, 512, 480};
+            
             
 
             
-            int mx, my;
+            float mx, my;
             SDL_GetMouseState(&mx, &my);
             int hover = (mx >= button.x && mx < button.x + button.w &&
                         my >= button.y && my < button.y + button.h);
             if (hover) SDL_SetRenderDrawColor(renderer, 120, 120, 255, 255);
             else       SDL_SetRenderDrawColor(renderer, 50, 50, 255, 255);
             SDL_RenderFillRect(renderer, &button);
+            SDL_RenderTexture(renderer, texture, NULL, &dstRect);
 
 
             SDL_RenderPresent(renderer);
@@ -195,12 +183,11 @@ int main(int argc, char** args){
         Uint64 end = SDL_GetPerformanceCounter();
 
         float elapsedMS = (end - start) / (float)SDL_GetPerformanceFrequency() * 1000.0f;
-        // Cap to 1000 FPS lol!!
-        if(1 >= elapsedMS) SDL_Delay(1);
+        SDL_Delay(1);
     }
 
-    SDL_FreeAudioStream(stream);
-    SDL_CloseAudioDevice(device_id);
+    SDL_DestroyAudioStream(stream);
+    SDL_CloseAudioDevice(SDL_GetAudioStreamDevice(stream));
 	SDL_DestroyWindow( window );
 	SDL_Quit();
     return 0;
