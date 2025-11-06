@@ -19,13 +19,13 @@ static APU apu;
 
 double sampleRate = 44100.0;
 
-float lastbuf = 0;
+const int ns = 4410; //100ms 
 
 SDL_AudioStream *stream = NULL;
 
 int main(int argc, char** args){
     
-    freopen("logs", "w", stdout);
+    // freopen("logs", "w", stdout);
     // freopen("logs", "r", stdin);
     if (!SDL_Init( SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
 		cout << "Error initializing SDL: " << SDL_GetError() << endl;
@@ -42,8 +42,11 @@ int main(int argc, char** args){
     dst.format = SDL_AUDIO_F32;
 
 
-    stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &src, NULL, NULL);
-
+    stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &dst, NULL, NULL);
+    if(!stream){
+        cout << "Error initializing stream: " << SDL_GetError() << endl;
+        return 1;
+    }
 
     SDL_SetAudioStreamFormat(stream, &src, &dst);
     // SDL_SetAudioStreamPutCallback(stream, &audio_callback, NULL);
@@ -62,10 +65,11 @@ int main(int argc, char** args){
 	}
 
     SDL_Renderer* renderer = SDL_CreateRenderer(window, NULL); //SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
-    SDL_SetRenderVSync(renderer, -1);
+    // SDL_SetRenderVSync(renderer, -1);
 
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB32, SDL_TEXTUREACCESS_STREAMING, 256, 240);
 
+    Uint64 timestamp = SDL_GetTicksNS();
     
     memset(ppu.framebuffer, 0xFF, sizeof(ppu.framebuffer));
     
@@ -80,10 +84,10 @@ int main(int argc, char** args){
     int X = 0;
     bool loaded = false;
     bool inited = false;
-   
+    
     while (running) {
+        Uint64 start = SDL_GetTicksNS();
         SDL_FRect button = {0, 0, 70, 25};
-        Uint64 start = SDL_GetPerformanceCounter();
         SDL_Event e;
         // Do event loop
         while (SDL_PollEvent(&e)) {
@@ -140,9 +144,11 @@ int main(int argc, char** args){
         bus.button2 = 0xFF;
         // Do physics loop
         int queued = SDL_GetAudioStreamAvailable(stream);
-        
-        bool render = false;
-        if(queued < 179000 * sizeof(float)) render = true; //~100ms
+        bool render = true;
+        if(queued > ns * sizeof(float)){ //~110ms
+            render = false;
+            cout << "here" << endl;
+        }
         if(loaded && render){
             //test apu
             long long int cyc = cpu.total_cycles;
@@ -157,7 +163,6 @@ int main(int argc, char** args){
         //renderer
         if(render){
             SDL_RenderClear(renderer);
-
             SDL_FRect menubar = {0, 0, 512, 25};
             SDL_SetRenderDrawColor(renderer, 240, 240, 240, 255);
             SDL_RenderFillRect(renderer, &menubar);
@@ -182,8 +187,10 @@ int main(int argc, char** args){
         }
         Uint64 end = SDL_GetPerformanceCounter();
 
-        float elapsedMS = (end - start) / (float)SDL_GetPerformanceFrequency() * 1000.0f;
-        SDL_Delay(1);
+        Uint64 elapsedMS = (SDL_GetTicksNS() - start);
+        
+        const Uint64 X = 16'200'000; //Small hack to "sync" audio and video.
+        if(elapsedMS <= X) SDL_DelayNS(X - elapsedMS);
     }
 
     SDL_DestroyAudioStream(stream);

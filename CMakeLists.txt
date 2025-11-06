@@ -6,7 +6,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
 set(SOURCES
-    app.cpp
     includes/6502.cpp
     includes/bus.cpp
     includes/ppu.cpp
@@ -28,10 +27,20 @@ set(HEADERS
 # Add SDL as subdirectory
 add_subdirectory(vendored/SDL EXCLUDE_FROM_ALL)
 
-# Build our hello executable
+
+if(EMSCRIPTEN)
+  list(APPEND SOURCES app_wasm.cpp)
+  set(CMAKE_EXECUTABLE_SUFFIX ".js" CACHE INTERNAL "")
+else()
+  list(APPEND SOURCES app.cpp)
+endif()
+
+# Build executable
 add_executable(emuNES ${SOURCES} ${HEADERS})
 
-
+if(EMSCRIPTEN)
+  target_link_options(emuNES PRIVATE -sEXPORTED_FUNCTIONS=['_load_cartridge','_main'] -sEXPORTED_RUNTIME_METHODS=['ccall'])
+endif()
 
 # Link to SDL2
 target_link_libraries(emuNES PRIVATE SDL3::SDL3 )
@@ -41,7 +50,3 @@ target_compile_features(emuNES PRIVATE cxx_std_17)
 
 #Optimize
 target_compile_options(emuNES PRIVATE -O2)
-
-if(EMSCRIPTEN)
-  set(CMAKE_EXECUTABLE_SUFFIX ".js" CACHE INTERNAL "")
-endif()

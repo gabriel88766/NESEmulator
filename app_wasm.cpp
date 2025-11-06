@@ -31,7 +31,7 @@ double sampleRate = 44100.0;
 bool loaded = false;
 SDL_AudioStream *stream = NULL;
 
-const int ns = 170000 * sizeof(float);
+const int ns = 4410; //100ms 
 
 void main_loop(){
     SDL_Event e;
@@ -70,9 +70,9 @@ void main_loop(){
     bus.button2 = 0xFF;
     // Do physics loop
     int queued = SDL_GetAudioStreamAvailable(stream);
-    bool render = false;
-    if(queued < ns) render = true;
-    if (loaded && queued < ns ){
+    bool render = true;
+    if(queued > ns * sizeof(float)) render = false;
+    if (loaded && render){
         while (!ppu.okVblank){   
             cpu.nextInstruction();
         }
@@ -131,16 +131,14 @@ int main()
     dst.channels = 1;
     dst.format = SDL_AUDIO_F32;
 
-    stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &src, NULL, NULL);
+    stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &dst, NULL, NULL);
     SDL_SetAudioStreamFormat(stream, &src, &dst);
     
     device_id = SDL_GetAudioStreamDevice(stream);
 
     window = SDL_CreateWindow("NES Emulator", 512, 480, SDL_EVENT_WINDOW_SHOWN);
     renderer = SDL_CreateRenderer(window, NULL);
-    SDL_SetRenderVSync(renderer, -1);
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB32, SDL_TEXTUREACCESS_STREAMING, 256, 240);
-    // emscripten_set_main_loop_timing(EM_TIMING_SETIMMEDIATE, 1);
-    emscripten_set_main_loop(main_loop, 180, 1);
+    emscripten_set_main_loop(main_loop, 0, 1);
     SDL_PauseAudioDevice(device_id);
 }

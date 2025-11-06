@@ -45,6 +45,13 @@ follow the README of SDL3 https://wiki.libsdl.org/SDL3/README-linux#build-depend
 cmake -S . -B build \
 cmake --build build
 
+# WASM
+first install emscripten 
+emcmake cmake -S . -B build_wasm
+cd build_wasm
+emmake make
+
+
 # Applying changes (rebuilding after edits)
 cmake --build build
 
