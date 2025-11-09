@@ -165,7 +165,6 @@ int main(int argc, char** args){
         // Do physics loop
         Uint64 rsize = SDL_GetAudioStreamAvailable(stream) / sizeof(float);
         if(loaded && rsize < 20000){
-            //test apu
             long long int cyc = cpu.total_cycles;
             while(!ppu.okVblank){
                 cpu.nextInstruction();
@@ -203,7 +202,6 @@ int main(int argc, char** args){
 
         SDL_RenderPresent(renderer);
         
-        Uint64 end = SDL_GetPerformanceCounter();
         const Uint64 X = 16'639'267LL;
         Uint64 timestamp_now = SDL_GetTicksNS();
         Uint64 elapsedMS = (timestamp_now - timestamp_start - X * frames);
